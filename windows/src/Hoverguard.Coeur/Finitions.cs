@@ -29,3 +29,27 @@ public static class IconesNotification
         return texte.Length > 63 ? texte[..63] : texte;
     }
 }
+
+/// <summary>Mises à jour : jamais pendant une garde. Une mise à jour demandée à la main s'installe tout de suite ; une
+/// mise à jour automatique attend que le vrai clavier et la vraie souris soient restés inutilisés un moment (l'app se
+/// relance en quelques secondes, il ne faut pas couper quelqu'un en plein travail).</summary>
+public static class ReglesMiseAJour
+{
+    public static readonly TimeSpan InactiviteAvantInstallation = TimeSpan.FromMinutes(10);
+
+    public static bool PeutInstaller(EtatGarde etat, TimeSpan inactivitePhysique, bool demandeeALaMain)
+        => etat == EtatGarde.Libre && (demandeeALaMain || inactivitePhysique >= InactiviteAvantInstallation);
+}
+
+/// <summary>Ce que fait un lancement de l'exe : au démarrage de session, rien de visible ; lancé à la main, Hoverguard
+/// se montre (sinon, l'icône cachée derrière la flèche de la zone de notification fait croire que rien ne s'est passé).</summary>
+public static class ReglesLancement
+{
+    public const string ArgumentDemarrage = "--demarrage";
+    /// <summary>Message passé par le tube à l'instance en cours quand on relance l'exe à la main. Ce n'est pas une URL :
+    /// <see cref="Ordre.Lire"/> l'ignore, il ne fait qu'ouvrir la fenêtre (jamais sous la garde).</summary>
+    public const string Montrer = "montrer";
+
+    public static bool LanceALaMain(IReadOnlyList<string> args)
+        => !args.Any(a => a == ArgumentDemarrage || a.StartsWith("hoverguard:", StringComparison.OrdinalIgnoreCase));
+}

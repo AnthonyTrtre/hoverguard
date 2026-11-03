@@ -103,6 +103,14 @@ internal static class Inscriptions
         catch (Exception e) { Journal.Erreur($"Inscription du protocole : {e.Message}"); }
     }
 
+    /// <summary>Désinstallation : retire le schéma <c>hoverguard://</c> et l'ouverture au démarrage.</summary>
+    public static void Retirer()
+    {
+        try { Registry.CurrentUser.DeleteSubKeyTree(CleProtocole, throwOnMissingSubKey: false); }
+        catch (Exception e) { Journal.Erreur($"Retrait du protocole : {e.Message}"); }
+        OuvertureAuDemarrage = false;
+    }
+
     public static bool OuvertureAuDemarrage
     {
         get
@@ -115,7 +123,7 @@ internal static class Inscriptions
             try
             {
                 using var cle = Registry.CurrentUser.CreateSubKey(CleRun);
-                if (value) cle.SetValue("Hoverguard", $"\"{Exe}\" --demarrage");
+                if (value) cle.SetValue("Hoverguard", $"\"{Exe}\" {ReglesLancement.ArgumentDemarrage}");
                 else cle.DeleteValue("Hoverguard", throwOnMissingValue: false);
             }
             catch (Exception e) { Journal.Erreur($"Ouverture au démarrage : {e.Message}"); }

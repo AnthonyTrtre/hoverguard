@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -6,6 +7,7 @@ using System.Windows;
 using System.Windows.Threading;
 using Hoverguard.Coeur;
 using Microsoft.Win32;
+using Velopack;
 using Forms = System.Windows.Forms;
 
 namespace Hoverguard;
@@ -15,6 +17,10 @@ internal static class Programme
     [STAThread]
     public static int Main(string[] args)
     {
+        // Velopack d'abord : l'installateur, les mises à jour et la désinstallation lancent l'exe avec leurs arguments.
+        VelopackApp.Build()
+            .OnBeforeUninstallFastCallback(_ => Inscriptions.Retirer())
+            .Run();
         if (args.Length >= 1 && args[0] == "--autotest")
             return AutoTest.Lancer(args.Length >= 2 ? args[1] : "autotest");
 
@@ -24,6 +30,8 @@ internal static class Programme
         {
             // Hoverguard tourne déjà : on lui passe l'URL (hook d'un agent) et on s'arrête.
             if (url is not null) Canal.Transmettre(url);
+            // Relancé à la main (double-clic, menu Démarrer) : l'instance en cours se montre.
+            else if (ReglesLancement.LanceALaMain(args)) Canal.Transmettre(ReglesLancement.Montrer);
             return 0;
         }
         var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
@@ -33,6 +41,7 @@ internal static class Programme
         {
             hote.Demarrer();
             if (url is not null) hote.RecevoirUrl(url);
+            else if (ReglesLancement.LanceALaMain(args)) hote.Montrer();
         };
         // Arrêt de Windows ou fermeture de session : seul cas où Hoverguard s'arrête pendant la garde.
         app.SessionEnding += (_, _) => hote.FinDeSession();
@@ -51,6 +60,11 @@ internal sealed class Hote
     private readonly Forms.NotifyIcon icone = new() { Text = "Hoverguard" };
     private readonly Forms.ContextMenuStrip menu = new() { ShowCheckMargin = true, ShowImageMargin = false };
     private FenetreReglages? fenetreReglages;
+    private readonly MisesAJour misesAJour = new();
+    // Première recherche 2 minutes après le lancement, puis un passage toutes les 30 minutes (recherche au plus 1 fois
+    // par jour ; le reste du temps, on regarde seulement si une mise à jour prête peut s'installer).
+    private readonly DispatcherTimer minuterieMaj = new() { Interval = TimeSpan.FromMinutes(2) };
+    private DateTime derniereRecherche = DateTime.MinValue;
 
     public Hote(Application app)
     {
@@ -91,15 +105,64 @@ internal sealed class Hote
         SystemEvents.UserPreferenceChanged += ThemeChange;
         RafraichirIcone();
         icone.Visible = true;
+        minuterieMaj.Tick += (_, _) => _ = MiseAJourAutomatique();
+        minuterieMaj.Start();
         Journal.Info($"Hoverguard démarré ({Environment.OSVersion.Version})");
     }
 
     public void FinDeSession() => garde.FinDeSession();
 
+    /// <summary>Lancé à la main : sans fenêtre, l'icône (souvent cachée derrière la flèche ^ de la zone de
+    /// notification) laisserait croire que rien ne s'est passé. Jamais sous la garde.</summary>
+    public void Montrer()
+    {
+        if (garde.Etat != EtatGarde.Libre) return;
+        Bulle("Hoverguard est lancé", $"Son icône est près de l'horloge (sous la flèche ^ si elle est cachée). {Regles.Raccourci} pose la garde.");
+        Reglages_(FenetreReglages.Onglet.Garde);
+    }
+
+    private void Bulle(string titre, string texte) => icone.ShowBalloonTip(8000, titre, texte, Forms.ToolTipIcon.None);
+
+    private async Task MiseAJourAutomatique()
+    {
+        minuterieMaj.Interval = TimeSpan.FromMinutes(30);
+        if (!reglages.MisesAJourAuto || !misesAJour.Installee) return;
+        if (DateTime.UtcNow - derniereRecherche > TimeSpan.FromHours(24))
+        {
+            derniereRecherche = DateTime.UtcNow;
+            await misesAJour.Preparer();
+        }
+        if (misesAJour.VersionPrete is not null
+            && ReglesMiseAJour.PeutInstaller(garde.Etat, garde.Filtre.InactivitePhysique, demandeeALaMain: false))
+            misesAJour.InstallerEtRelancer();
+    }
+
+    private async void RechercherMiseAJour()
+    {
+        if (!misesAJour.Installee)
+        {
+            Bulle("Mises à jour", "Cette copie n'a pas été installée avec Hoverguard-Setup.exe : téléchargez-le pour recevoir les mises à jour.");
+            Process.Start(new ProcessStartInfo(MisesAJour.PageDesVersions) { UseShellExecute = true });
+            return;
+        }
+        Bulle("Mises à jour", "Recherche d'une nouvelle version…");
+        derniereRecherche = DateTime.UtcNow;
+        if (await misesAJour.Preparer() is not string version)
+        {
+            Bulle("Hoverguard est à jour", $"Version {FenetreReglages.VersionActuelle}");
+            return;
+        }
+        if (ReglesMiseAJour.PeutInstaller(garde.Etat, garde.Filtre.InactivitePhysique, demandeeALaMain: true))
+            misesAJour.InstallerEtRelancer();
+        else
+            Bulle("Mise à jour prête", $"La version {version} s'installera après la garde.");
+    }
+
     /// <summary>Quitter est refusé pendant la garde : seuls Windows Hello et le mot de passe la lèvent.</summary>
     private void Quitter()
     {
         if (garde.Etat != EtatGarde.Libre) { Journal.Info("Quitter refusé pendant la garde"); return; }
+        misesAJour.InstallerALaSortie();
         app.Shutdown();
     }
 
@@ -115,6 +178,7 @@ internal sealed class Hote
 
     public void RecevoirUrl(string texte)
     {
+        if (texte == ReglesLancement.Montrer) { Montrer(); return; }
         if (Ordre.Lire(texte) is Ordre o) garde.Recevoir(o);
         else Journal.Info("URL ignorée");
     }
@@ -186,6 +250,7 @@ internal sealed class Hote
         if (g.DernierRapport is not null && g.Etat == EtatGarde.Libre)
             menu.Items.Add(Item("Rapport de la dernière garde…", g.MontrerDernierRapport));
         menu.Items.Add(Item("Réglages…", () => Reglages_(FenetreReglages.Onglet.Garde)));
+        menu.Items.Add(Item("Rechercher des mises à jour…", RechercherMiseAJour));
         menu.Items.Add(Item("À propos de Hoverguard", () => Reglages_(FenetreReglages.Onglet.APropos)));
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add(Item("Quitter Hoverguard", Quitter));

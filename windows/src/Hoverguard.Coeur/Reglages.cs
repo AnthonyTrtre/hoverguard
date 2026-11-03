@@ -33,6 +33,9 @@ public sealed class Reglages
     /// TODO : brancher un canal local respectant « aucune connexion réseau » (par ex. l'app « Lien avec Windows »).</summary>
     [JsonPropertyName("notifications")] public bool Notifications { get; set; }
 
+    /// <summary>Mises à jour automatiques depuis les Releases GitHub (même clé que la version macOS / Sparkle).</summary>
+    [JsonPropertyName("SUEnableAutomaticChecks")] public bool MisesAJourAuto { get; set; } = true;
+
     /// <summary>Le premier lancement a déjà inscrit l'ouverture au démarrage de session.</summary>
     [JsonPropertyName("premierLancementFait")] public bool PremierLancementFait { get; set; }
 

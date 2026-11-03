@@ -53,6 +53,30 @@ jobs:
           $p = Start-Process -FilePath publication\Hoverguard.exe -ArgumentList '--autotest','autotest' -PassThru -Wait
           if (Test-Path autotest\resultats.txt) { Get-Content autotest\resultats.txt } else { Write-Host "Aucun résultat écrit." }
           exit $p.ExitCode
+      - name: Installateur Velopack, installation silencieuse et premier lancement
+        shell: pwsh
+        timeout-minutes: 10
+        run: |
+          dotnet publish src/Hoverguard/Hoverguard.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=false -p:Version=0.0.1 -o application
+          dotnet tool install -g vpk --version 1.2.161
+          vpk pack --packId Hoverguard --packVersion 0.0.1 --packDir application --mainExe Hoverguard.exe --packTitle Hoverguard --packAuthors Utahpik --icon ressources/hoverguard.ico --outputDir velopack
+          Get-ChildItem velopack | ForEach-Object { "$($_.Name)  $([math]::Round($_.Length/1MB,1)) Mo" }
+          Start-Process velopack/Hoverguard-win-Setup.exe -ArgumentList '--silent' -Wait
+          $installe = "$env:LOCALAPPDATA\Hoverguard\current\Hoverguard.exe"
+          if (!(Test-Path $installe)) { throw "Hoverguard n'est pas installé dans $installe" }
+          Get-Process Hoverguard -ErrorAction SilentlyContinue | Stop-Process -Force
+          Start-Sleep 2
+          # Lancement à la main (comme un double-clic) : la fenêtre doit s'ouvrir.
+          Start-Process $installe
+          Start-Sleep 20
+          $p = Get-Process Hoverguard -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle }
+          if (!$p) { Get-Content "$env:LOCALAPPDATA\Utahpik\Hoverguard\journal.txt" -Tail 30 -ErrorAction SilentlyContinue; throw "Aucune fenêtre visible après un lancement à la main" }
+          "Fenêtre ouverte : $($p.MainWindowTitle)"
+          # Second double-clic : l'instance en cours doit rester seule et se montrer.
+          Start-Process $installe
+          Start-Sleep 5
+          "Instances : $((Get-Process Hoverguard).Count)"
+          Get-Content "$env:LOCALAPPDATA\Utahpik\Hoverguard\journal.txt" -Tail 10 -ErrorAction SilentlyContinue
       - name: Exe pour téléchargement
         uses: actions/upload-artifact@v4
         with:

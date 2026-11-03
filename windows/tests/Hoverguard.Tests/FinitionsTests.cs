@@ -135,3 +135,33 @@ static class Depot
         throw new DirectoryNotFoundException("Racine du dépôt introuvable");
     }
 }
+
+public class MisesAJourEtLancementTests
+{
+    [Fact]
+    public void JamaisDeMiseAJourPendantLaGarde()
+    {
+        Assert.False(ReglesMiseAJour.PeutInstaller(EtatGarde.Garde, TimeSpan.FromHours(3), demandeeALaMain: true));
+        Assert.False(ReglesMiseAJour.PeutInstaller(EtatGarde.Authentification, TimeSpan.FromHours(3), demandeeALaMain: false));
+    }
+
+    [Fact]
+    public void LaMiseAJourAutomatiqueAttendDixMinutesSansClavierNiSouris()
+    {
+        Assert.False(ReglesMiseAJour.PeutInstaller(EtatGarde.Libre, TimeSpan.FromMinutes(9), demandeeALaMain: false));
+        Assert.True(ReglesMiseAJour.PeutInstaller(EtatGarde.Libre, TimeSpan.FromMinutes(10), demandeeALaMain: false));
+        Assert.True(ReglesMiseAJour.PeutInstaller(EtatGarde.Libre, TimeSpan.Zero, demandeeALaMain: true));
+    }
+
+    [Fact]
+    public void SeuleUneOuvertureALaMainMontreHoverguard()
+    {
+        Assert.True(ReglesLancement.LanceALaMain([]));
+        Assert.False(ReglesLancement.LanceALaMain(["--demarrage"]));
+        Assert.False(ReglesLancement.LanceALaMain(["hoverguard://agent?nom=x&etat=travail"]));
+        Assert.Null(Ordre.Lire(ReglesLancement.Montrer));
+    }
+
+    [Fact]
+    public void LesMisesAJourSontActiveesParDefaut() => Assert.True(new Reglages().MisesAJourAuto);
+}

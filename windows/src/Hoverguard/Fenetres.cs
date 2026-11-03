@@ -95,6 +95,9 @@ internal sealed class FenetreReglages : Window
         p.Children.Add(Case("Ouvrir le rapport de la garde au déverrouillage", reglages.RapportAuRetour, v => { reglages.RapportAuRetour = v; enregistrer(); }));
         p.Children.Add(Note("Sinon, le rapport attend dans le menu de l'icône : « Rapport de la dernière garde… »."));
         p.Children.Add(Case("Ouvrir Hoverguard à l'ouverture de session", Inscriptions.OuvertureAuDemarrage, v => Inscriptions.OuvertureAuDemarrage = v));
+        p.Children.Add(Titre("Mises à jour"));
+        p.Children.Add(Case("Installer les mises à jour automatiquement", reglages.MisesAJourAuto, v => { reglages.MisesAJourAuto = v; enregistrer(); }));
+        p.Children.Add(Note("Une fois par jour, Hoverguard regarde la dernière version publiée sur GitHub (seule connexion réseau de l'app). Elle s'installe quand le PC est inutilisé depuis 10 minutes ou quand vous quittez Hoverguard, jamais pendant une garde."));
         return new ScrollViewer { Content = p, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
     }
 
@@ -230,9 +233,12 @@ internal sealed class FenetreReglages : Window
         return p;
     }
 
+    public static string VersionActuelle =>
+        Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion?.Split('+')[0] ?? "?";
+
     private static UIElement APropos()
     {
-        var version = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion?.Split('+')[0] ?? "?";
+        var version = VersionActuelle;
         var p = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(24) };
         p.Children.Add(new Image { Source = Icones.Logo(128), Width = 96, Height = 96 });
         p.Children.Add(new TextBlock { Text = "Hoverguard", FontSize = 30, FontWeight = FontWeights.Bold, HorizontalAlignment = HorizontalAlignment.Center });

@@ -1,5 +1,5 @@
 # Publication d'une version : à chaque étiquette « v… » (ex. v1.0.0), l'exe Windows est compilé, testé et joint à une
-# Release GitHub (brouillon, publiée à la main par Utahpik). Le DMG Mac est ajouté depuis le Mac d'Utahpik
+# Release GitHub (installateur Velopack + paquets de mise à jour ; brouillon, publiée à la main par Utahpik). Le DMG Mac est ajouté depuis le Mac d'Utahpik
 # (macos/Scripts/publier-mac.sh, signé avec le certificat Utahpik, qui ne quitte pas son Trousseau), avec l'archive de
 # mise à jour et le flux lus par les apps installées (releases/latest/download/appcast.xml) :
 #   gh release upload v1.0.0 Hoverguard-1.0.0.dmg Hoverguard-1.0.0.dmg.sha256 Hoverguard-1.0.0.zip appcast.xml
@@ -22,32 +22,40 @@ jobs:
           dotnet-version: "8.0.x"
       - name: Tests
         run: dotnet test windows/tests/Hoverguard.Tests -c Release
-      - name: "Exe autonome (édition de lancement : Pro offert aux 1 000 premiers)"
+      - name: "Installateur et mises à jour (édition de lancement : Pro offert aux 1 000 premiers)"
         shell: pwsh
         run: |
           $version = "${{ github.ref_name }}".TrimStart("v")
+          # Dossier autonome (pas un seul fichier : démarrage rapide), empaqueté par Velopack (MIT) en un installateur
+          # sans droits d'administrateur et en paquets de mise à jour lus par les apps installées.
           dotnet publish windows/src/Hoverguard/Hoverguard.csproj -c Release -r win-x64 --self-contained `
-            -p:PublishSingleFile=true -p:Version=$version -p:EditionLancement=true -o publication
-          Rename-Item publication/Hoverguard.exe "Hoverguard-$version-windows-x64.exe"
-          Get-FileHash "publication/Hoverguard-$version-windows-x64.exe" -Algorithm SHA256 |
-            ForEach-Object { "$($_.Hash.ToLower())  Hoverguard-$version-windows-x64.exe" } |
-            Out-File -Encoding ascii "publication/Hoverguard-$version-windows-x64.exe.sha256"
+            -p:PublishSingleFile=false -p:Version=$version -p:EditionLancement=true -o application
+          dotnet tool install -g vpk --version 1.2.161
+          vpk pack --packId Hoverguard --packVersion $version --packDir application --mainExe Hoverguard.exe `
+            --packTitle Hoverguard --packAuthors Utahpik --icon windows/ressources/hoverguard.ico --outputDir velopack
+          New-Item -ItemType Directory publication | Out-Null
+          Copy-Item velopack/Hoverguard-win-Setup.exe publication/Hoverguard-Setup.exe
+          Copy-Item velopack/*.nupkg, velopack/releases.win.json, velopack/assets.win.json, velopack/RELEASES publication/ -ErrorAction SilentlyContinue
+          Get-FileHash publication/Hoverguard-Setup.exe -Algorithm SHA256 |
+            ForEach-Object { "$($_.Hash.ToLower())  Hoverguard-Setup.exe" } |
+            Out-File -Encoding ascii -NoNewline publication/Hoverguard-Setup.exe.sha256
+          Get-ChildItem publication | ForEach-Object { "$($_.Name)  $([math]::Round($_.Length/1MB,1)) Mo" }
       - name: Release (brouillon)
         uses: softprops/action-gh-release@v2
         with:
           draft: true
           name: Hoverguard ${{ github.ref_name }}
           files: |
-            publication/*.exe
-            publication/*.sha256
+            publication/*
           body: |
             ## Installer
             **Mac (macOS 26+)** : téléchargez le `.dmg`, glissez Hoverguard dans Applications. Au premier lancement,
             Réglages Système › Confidentialité et sécurité › **Ouvrir quand même**, puis autorisez Hoverguard dans
             **Accessibilité** (une seule fois : les mises à jour gardent l'autorisation).
 
-            **Windows 10/11** : téléchargez l'`.exe` et lancez-le. SmartScreen peut afficher « Windows a protégé votre
-            ordinateur » : *Informations complémentaires* › *Exécuter quand même* (l'exe n'est pas signé).
+            **Windows 10/11** : téléchargez `Hoverguard-Setup.exe` et lancez-le (installation sans droits
+            d'administrateur, mises à jour automatiques). SmartScreen peut afficher « Windows a protégé votre
+            ordinateur » : *Informations complémentaires* › *Exécuter quand même* (l'installateur n'est pas signé).
 
             **Mises à jour (Mac)** : automatiques à partir de cette version, signées par Utahpik, jamais pendant une garde.
 
