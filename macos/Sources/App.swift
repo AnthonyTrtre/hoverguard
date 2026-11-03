@@ -73,7 +73,7 @@ final class Delegue: NSObject, NSApplicationDelegate, NSMenuDelegate, SPUUpdater
         image?.isTemplate = true
         item.button?.image = image
         item.button?.appearsDisabled = false
-        item.button?.toolTip = garde.etat == .libre ? "Hoverguard : \(Textes.compteur(principaux: garde.principauxActifs, sousAgents: garde.agents.sousAgents()))"
+        item.button?.toolTip = garde.etat == .libre ? "Hoverguard : \(Textes.compteur(principaux: garde.principauxActifs, sousAgents: garde.sousAgentsActifs))"
                                                     : "Hoverguard : garde posée"
     }
 
@@ -81,9 +81,10 @@ final class Delegue: NSObject, NSApplicationDelegate, NSMenuDelegate, SPUUpdater
         menu.removeAllItems()
         let g = garde, e = eveil
         titre(g.etat == .libre ? "Écran libre" : "Garde posée", dans: menu)
-        titre(Textes.compteur(principaux: g.principauxActifs, sousAgents: g.agents.sousAgents()), dans: menu)
-        let ouverts = Dictionary(grouping: g.detectes, by: \.nom).sorted { $0.key < $1.key }
-            .map { nom, liste in "\(nom) : \(liste.filter(\.actif).count) au travail / \(liste.count)" }
+        titre(Textes.compteur(principaux: g.principauxActifs, sousAgents: g.sousAgentsActifs), dans: menu)
+        let parOutil = Dictionary(grouping: g.detectes, by: \.nom).mapValues { $0.filter(\.actif).count }
+            .merging(g.journaux.principaux) { max($0, $1) }
+        let ouverts = parOutil.sorted { $0.key < $1.key }.map { nom, n in "\(nom) : \(n) au travail" }
         if !ouverts.isEmpty { titre(ouverts.joined(separator: " · "), dans: menu) }
         if !g.agents.enAttente().isEmpty {
             titre(Textes.statutAgents(actifs: [], enAttente: g.agents.enAttente()), dans: menu)

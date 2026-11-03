@@ -149,3 +149,56 @@ final class Detecteur: @unchecked Sendable {
         return args
     }
 }
+
+/// Conversations d'agents au travail d'après leurs journaux. Un agent qui réfléchit attend la réponse du serveur et ne
+/// consomme presque pas de processeur (la détection des processus le croit au repos), mais il écrit dans son journal à
+/// chaque message et à chaque outil. Seule la date de modification des fichiers est lue, jamais leur contenu.
+struct ReleveJournaux: Equatable, Sendable {
+    var principaux: [String: Int] = [:]
+    var sousAgents = 0
+    var totalPrincipaux: Int { principaux.values.reduce(0, +) }
+}
+
+enum JournauxAgents {
+    /// Journal modifié depuis moins de 3 minutes : la conversation travaille (une longue réflexion peut durer 2 min).
+    static let fenetre: TimeInterval = 180
+
+    static func relever(maison: URL = FileManager.default.homeDirectoryForCurrentUser, maintenant: Date = .now) -> ReleveJournaux {
+        var releve = ReleveJournaux()
+        func recent(_ url: URL) -> Bool {
+            guard let date = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate else { return false }
+            return maintenant.timeIntervalSince(date) < fenetre
+        }
+        func contenu(_ dossier: URL) -> [URL] {
+            (try? FileManager.default.contentsOfDirectory(at: dossier, includingPropertiesForKeys: [.contentModificationDateKey, .isDirectoryKey])) ?? []
+        }
+        func dossiers(_ dossier: URL) -> [URL] {
+            contenu(dossier).filter { (try? $0.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true }
+        }
+        func ajouter(_ agent: String, _ n: Int) { if n > 0 { releve.principaux[agent, default: 0] += n } }
+
+        // Claude Code (terminal et conversations de l'app Claude) : projects/<projet>/<session>.jsonl, et les
+        // sous-agents dans projects/<projet>/<session>/subagents/*.jsonl. Une conversation qui attend ses sous-agents
+        // n'écrit plus dans son journal : elle compte au travail tant que l'un d'eux travaille.
+        for projet in dossiers(maison.appending(path: ".claude/projects")) {
+            var actives = Set(contenu(projet).filter { $0.pathExtension == "jsonl" && recent($0) }.map { $0.deletingPathExtension().lastPathComponent })
+            for session in dossiers(projet) {
+                let sous = contenu(session.appending(path: "subagents")).filter { $0.pathExtension == "jsonl" && recent($0) }.count
+                releve.sousAgents += sous
+                if sous > 0 { actives.insert(session.lastPathComponent) }
+            }
+            ajouter("Claude", actives.count)
+        }
+        // Codex (terminal et app ChatGPT) : sessions/AAAA/MM/JJ/rollout-*.jsonl, du jour et de la veille (minuit).
+        for jour in [maintenant, maintenant.addingTimeInterval(-86_400)] {
+            let c = Calendar.current.dateComponents([.year, .month, .day], from: jour)
+            let dossier = maison.appending(path: String(format: ".codex/sessions/%04d/%02d/%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0))
+            ajouter("Codex", contenu(dossier).filter { $0.pathExtension == "jsonl" && recent($0) }.count)
+        }
+        // Gemini CLI : tmp/<projet>/chats/*.json.
+        for projet in dossiers(maison.appending(path: ".gemini/tmp")) {
+            ajouter("Gemini", contenu(projet.appending(path: "chats")).filter { $0.pathExtension == "json" && recent($0) }.count)
+        }
+        return releve
+    }
+}

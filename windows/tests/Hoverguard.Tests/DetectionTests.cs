@@ -179,3 +179,51 @@ public class DetectionTests
         Assert.Equal("0 au travail sur 1 ouvert", ReglesDetection.Detail(0, 1));
     }
 }
+
+public class JournauxAgentsTests
+{
+    static readonly DateTime Maintenant = new(2026, 11, 3, 12, 0, 0, DateTimeKind.Utc);
+
+    static void Journal(string maison, string chemin, TimeSpan age)
+    {
+        var f = Path.Combine(maison, chemin);
+        Directory.CreateDirectory(Path.GetDirectoryName(f)!);
+        File.WriteAllText(f, "{}");
+        File.SetLastWriteTimeUtc(f, Maintenant - age);
+    }
+
+    [Fact]
+    public void ConversationsEtSousAgentsAuTravail()
+    {
+        var maison = Path.Combine(Path.GetTempPath(), $"hg-journaux-{Guid.NewGuid():N}");
+        try
+        {
+            var p = Path.Combine(".claude", "projects", "C--Users-moi-projet");
+            Journal(maison, Path.Combine(p, "a.jsonl"), TimeSpan.FromSeconds(10));
+            Journal(maison, Path.Combine(p, "b.jsonl"), TimeSpan.FromHours(1));
+            Journal(maison, Path.Combine(p, "b", "subagents", "agent-1.jsonl"), TimeSpan.FromSeconds(30));
+            Journal(maison, Path.Combine(p, "b", "subagents", "agent-2.jsonl"), TimeSpan.FromSeconds(40));
+            Journal(maison, Path.Combine(p, "c.jsonl"), TimeSpan.FromMinutes(10));
+            var jour = Maintenant.ToLocalTime();
+            var codex = Path.Combine(".codex", "sessions", jour.ToString("yyyy"), jour.ToString("MM"), jour.ToString("dd"));
+            Journal(maison, Path.Combine(codex, "rollout-1.jsonl"), TimeSpan.FromSeconds(5));
+            Journal(maison, Path.Combine(codex, "rollout-2.jsonl"), TimeSpan.FromHours(3));
+
+            var r = JournauxAgents.Relever(maison, Maintenant);
+            Assert.Equal(2, r.Principaux["Claude"]);
+            Assert.Equal(1, r.Principaux["Codex"]);
+            Assert.Equal(2, r.SousAgents);
+            Assert.Equal(3, r.TotalPrincipaux);
+            Assert.Equal("Claude : 2 au travail / 2 · Codex : 1 au travail / 1", ReglesDetection.LigneMenu([], r.Principaux));
+        }
+        finally { if (Directory.Exists(maison)) Directory.Delete(maison, true); }
+    }
+
+    [Fact]
+    public void RienQuandAucunAgentNEstInstalle()
+    {
+        var r = JournauxAgents.Relever(Path.Combine(Path.GetTempPath(), $"hg-vide-{Guid.NewGuid():N}"), Maintenant);
+        Assert.Equal(0, r.TotalPrincipaux);
+        Assert.Equal(0, r.SousAgents);
+    }
+}

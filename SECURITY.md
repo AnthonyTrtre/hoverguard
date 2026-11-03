@@ -51,6 +51,9 @@ commandes n'utilisent que des chemins absolus et ne transmettent que l'état et 
 session. « Débrancher » retire tout ce que Hoverguard a ajouté.
 
 ## Données et réseau
+- **Compte des agents** : Hoverguard lit la liste des processus et la **date de modification** des journaux de
+  conversation des agents (`~/.claude/projects`, `~/.codex/sessions`, `~/.gemini/tmp`) pour savoir lesquels travaillent.
+  Il n'ouvre jamais ces fichiers : leur contenu (vos conversations) n'est ni lu ni transmis.
 - Aucune télémétrie. Seule connexion réseau : une fois par jour, la recherche de mises à jour dans les Releases GitHub
   de ce dépôt (Mac : `releases/latest/download/appcast.xml` ; Windows : `releases.win.json` via l'API GitHub) ; aucun
   identifiant ni donnée n'est envoyé. Désactivable dans Réglages › Garde.

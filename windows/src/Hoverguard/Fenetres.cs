@@ -147,8 +147,8 @@ internal sealed class FenetreReglages : Window
     {
         var p = Page();
         p.Children.Add(Titre("En ce moment"));
-        p.Children.Add(new TextBlock { Text = Textes.Compteur(garde.PrincipauxActifs, garde.Agents.SousAgents()) });
-        foreach (var (nom, auTravail, ouverts) in ReglesDetection.ParOutil(garde.Detectes))
+        p.Children.Add(new TextBlock { Text = Textes.Compteur(garde.PrincipauxActifs, garde.SousAgentsActifs) });
+        foreach (var (nom, auTravail, ouverts) in ReglesDetection.ParOutil(garde.Detectes, garde.Journaux.Principaux))
         {
             var ligneOutil = new DockPanel { Margin = new Thickness(0, 2, 0, 2), LastChildFill = false };
             ligneOutil.Children.Add(new TextBlock { Text = nom, Width = 160 });

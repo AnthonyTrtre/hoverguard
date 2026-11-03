@@ -12,10 +12,13 @@ final class ControleurGarde {
     /// Agents repérés automatiquement parmi les processus du Mac (sans hooks).
     private(set) var detectes: [AgentDetecte] = []
     private let detecteur = Detecteur()
+    /// Conversations au travail d'après leurs journaux (Claude, Codex, Gemini), sous-agents compris.
+    private(set) var journaux = ReleveJournaux()
 
-    /// Agents principaux au travail : le plus grand des deux comptes (détection des processus, signaux des hooks).
-    var principauxActifs: Int { max(agents.actifs().count, detectes.filter(\.actif).count) }
-    var totalActifs: Int { principauxActifs + agents.sousAgents() }
+    /// Agents principaux au travail : le plus grand des comptes (processus, journaux des conversations, hooks).
+    var principauxActifs: Int { max(agents.actifs().count, detectes.filter(\.actif).count, journaux.totalPrincipaux) }
+    var sousAgentsActifs: Int { max(agents.sousAgents(), journaux.sousAgents) }
+    var totalActifs: Int { principauxActifs + sousAgentsActifs }
     let voile = Voile()
     let filtre = Filtre()
     private let reglages: UserDefaults
@@ -277,9 +280,11 @@ final class ControleurGarde {
         let detecteur = detecteur
         Task.detached(priority: .utility) { [weak self] in
             let releve = detecteur.relever()
+            let journaux = JournauxAgents.relever()
             await MainActor.run {
                 guard let self else { return }
                 self.detectes = releve
+                self.journaux = journaux
                 self.rafraichirVoile()
                 self.surChangement()
             }
@@ -291,7 +296,7 @@ final class ControleurGarde {
             if NSWorkspace.shared.isVoiceOverEnabled { return garantirParLeSysteme("VoiceOver activé") }
         }
         if etat == .authentification, Date.now.timeIntervalSince(voile.etat.derniereActivite) > 60 { annulerReveil() }
-        journal?.sousAgents(agents.sousAgents())
+        journal?.sousAgents(sousAgentsActifs)
         let b = Batterie.lire()
         if etat != .libre, !b.surSecteur, let n = b.niveau, n <= 20 { alerter(.batterieFaible, "Plus que \(n) % de batterie.") }
         if etat == .libre, gardeAutoMinutes > 0, totalActifs > 0, Inactivite.secondes > Double(gardeAutoMinutes) * 60 {
@@ -377,7 +382,7 @@ final class ControleurGarde {
 
     private func rafraichirVoile() {
         voile.etat.intensiteLasers = intensiteLasers
-        let actifs = principauxActifs, sous = agents.sousAgents()
+        let actifs = principauxActifs, sous = sousAgentsActifs
         voile.etat.phrase = phrase
         voile.etat.agentsActifs = actifs + sous
         voile.etat.compteur = Textes.compteur(principaux: actifs, sousAgents: sous)

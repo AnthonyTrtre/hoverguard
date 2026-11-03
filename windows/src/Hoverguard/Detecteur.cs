@@ -147,12 +147,12 @@ internal static class RelevesDetection
 {
     private static int enCours;
 
-    public static void Lancer(Detecteur detecteur, Action<IReadOnlyList<AgentDetecte>> surResultat)
+    public static void Lancer(Detecteur detecteur, Action<IReadOnlyList<AgentDetecte>, ReleveJournaux> surResultat)
     {
         if (Interlocked.Exchange(ref enCours, 1) == 1) return;
         ThreadPool.QueueUserWorkItem(_ =>
         {
-            try { surResultat(detecteur.Relever()); }
+            try { surResultat(detecteur.Relever(), JournauxAgents.Relever(Dossiers.Utilisateur, DateTime.UtcNow)); }
             catch (Exception e) { Journal.Erreur($"Détection des agents : {e.Message}"); }
             finally { Volatile.Write(ref enCours, 0); }
         });

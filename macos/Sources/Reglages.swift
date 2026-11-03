@@ -101,7 +101,7 @@ private struct Agents: View {
     var body: some View {
         Form {
             Section("En ce moment") {
-                Text(Textes.compteur(principaux: garde.principauxActifs, sousAgents: garde.agents.sousAgents()))
+                Text(Textes.compteur(principaux: garde.principauxActifs, sousAgents: garde.sousAgentsActifs))
                 ForEach(Dictionary(grouping: garde.detectes, by: \.nom).sorted { $0.key < $1.key }, id: \.key) { nom, liste in
                     LabeledContent(nom, value: "\(liste.filter(\.actif).count) au travail sur \(liste.count) ouvert\(liste.count > 1 ? "s" : "")")
                 }

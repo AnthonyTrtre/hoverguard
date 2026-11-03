@@ -20,8 +20,11 @@ internal sealed class ControleurGarde
     public IReadOnlyList<AgentDetecte> Detectes { get; private set; } = [];
     private readonly Detecteur detecteur = new();
     /// <summary>Agents principaux au travail : le plus grand des deux comptes (détection des processus, hooks).</summary>
-    public int PrincipauxActifs => ReglesDetection.Principaux(Agents.Actifs().Count, Detectes);
-    public int TotalActifs => PrincipauxActifs + Agents.SousAgents();
+    /// <summary>Conversations au travail d'après leurs journaux (Claude, Codex, Gemini), sous-agents compris.</summary>
+    public ReleveJournaux Journaux { get; private set; } = ReleveJournaux.Vide;
+    public int PrincipauxActifs => Math.Max(ReglesDetection.Principaux(Agents.Actifs().Count, Detectes), Journaux.TotalPrincipaux);
+    public int SousAgentsActifs => Math.Max(Agents.SousAgents(), Journaux.SousAgents);
+    public int TotalActifs => PrincipauxActifs + SousAgentsActifs;
     public readonly Voile Voile = new();
     public readonly Filtre Filtre = new();
     private readonly Reglages reglages;
@@ -320,7 +323,7 @@ internal sealed class ControleurGarde
             && DateTime.UtcNow - identification.DerniereActivite > ReglesGarde.SaisieAbandonnee)
             AnnulerReveil();
         Detecter();
-        journal?.SousAgents(Agents.SousAgents());
+        journal?.SousAgents(SousAgentsActifs);
         var b = Batterie.Lire();
         if (Etat != EtatGarde.Libre && !b.SurSecteur && b.Niveau is int n && n <= 20) Alerter(Alerte.BatterieFaible, $"Plus que {n} % de batterie.");
         if (ReglesGardeAuto.DoitPoser(Etat, reglages.GardeAutoMinutes, TotalActifs, Filtre.InactivitePhysique))
@@ -333,9 +336,10 @@ internal sealed class ControleurGarde
 
     /// <summary>Relève les processus hors du fil de l'interface, puis met à jour compteur, voile et icône.</summary>
     private void Detecter()
-        => RelevesDetection.Lancer(detecteur, releve => interface_.BeginInvoke(() =>
+        => RelevesDetection.Lancer(detecteur, (releve, journaux) => interface_.BeginInvoke(() =>
         {
             Detectes = releve;
+            Journaux = journaux;
             Rafraichir();
             SurChangement();
         }));
@@ -393,7 +397,7 @@ internal sealed class ControleurGarde
 
     private void Rafraichir(bool voile = true)
     {
-        int actifs = PrincipauxActifs, sous = Agents.SousAgents();
+        int actifs = PrincipauxActifs, sous = SousAgentsActifs;
         var v = Voile.Etat;
         v.Phrase = Phrase;
         v.AgentsActifs = actifs + sous;

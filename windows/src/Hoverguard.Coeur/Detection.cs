@@ -182,15 +182,24 @@ public static class ReglesDetection
     public static int Principaux(int parHooks, IEnumerable<AgentDetecte> detectes)
         => Math.Max(parHooks, detectes.Count(d => d.Actif));
 
-    /// <summary>Une ligne par outil, triée : (« Codex », 1 au travail, 2 ouverts).</summary>
-    public static IReadOnlyList<(string Nom, int AuTravail, int Ouverts)> ParOutil(IEnumerable<AgentDetecte> detectes)
-        => detectes.GroupBy(d => d.Nom).OrderBy(g => g.Key, StringComparer.Ordinal)
-            .Select(g => (g.Key, g.Count(d => d.Actif), g.Count())).ToList();
+    /// <summary>Une ligne par outil, triée : (« Codex », 1 au travail, 2 ouverts). Les journaux des conversations
+    /// (<see cref="JournauxAgents"/>) complètent la détection des processus, qui ne voit pas un agent qui réfléchit.</summary>
+    public static IReadOnlyList<(string Nom, int AuTravail, int Ouverts)> ParOutil(IEnumerable<AgentDetecte> detectes,
+                                                                                   IReadOnlyDictionary<string, int>? journaux = null)
+    {
+        var parOutil = detectes.GroupBy(d => d.Nom).ToDictionary(g => g.Key, g => (AuTravail: g.Count(d => d.Actif), Ouverts: g.Count()));
+        foreach (var (nom, n) in journaux ?? new Dictionary<string, int>())
+        {
+            var o = parOutil.GetValueOrDefault(nom);
+            parOutil[nom] = (Math.Max(o.AuTravail, n), Math.Max(o.Ouverts, n));
+        }
+        return parOutil.OrderBy(p => p.Key, StringComparer.Ordinal).Select(p => (p.Key, p.Value.AuTravail, p.Value.Ouverts)).ToList();
+    }
 
     /// <summary>Résumé du menu : « Claude : 2 au travail / 3 · Codex : 0 au travail / 1 », ou <c>null</c> si rien n'est ouvert.</summary>
-    public static string? LigneMenu(IEnumerable<AgentDetecte> detectes)
+    public static string? LigneMenu(IEnumerable<AgentDetecte> detectes, IReadOnlyDictionary<string, int>? journaux = null)
     {
-        var lignes = ParOutil(detectes).Select(o => $"{o.Nom} : {o.AuTravail} au travail / {o.Ouverts}").ToList();
+        var lignes = ParOutil(detectes, journaux).Select(o => $"{o.Nom} : {o.AuTravail} au travail / {o.Ouverts}").ToList();
         return lignes.Count == 0 ? null : string.Join(" · ", lignes);
     }
 
@@ -278,5 +287,62 @@ public sealed class MesureActivite
         precedent = suivant;
         instantPrecedent = maintenant;
         return resultat;
+    }
+}
+
+/// <summary>Conversations d'agents au travail d'après leurs journaux. Un agent qui réfléchit attend la réponse du
+/// serveur et ne consomme presque pas de processeur (la détection des processus le croit au repos), mais il écrit dans
+/// son journal à chaque message et à chaque outil. Seule la date de modification des fichiers est lue, jamais leur
+/// contenu. Même logique que la version macOS.</summary>
+public sealed record ReleveJournaux(IReadOnlyDictionary<string, int> Principaux, int SousAgents)
+{
+    public static readonly ReleveJournaux Vide = new(new Dictionary<string, int>(), 0);
+    public int TotalPrincipaux => Principaux.Values.Sum();
+}
+
+public static class JournauxAgents
+{
+    /// <summary>Journal modifié depuis moins de 3 minutes : la conversation travaille (une longue réflexion peut durer 2 min).</summary>
+    public static readonly TimeSpan Fenetre = TimeSpan.FromMinutes(3);
+
+    public static ReleveJournaux Relever(string maison, DateTime maintenantUtc)
+    {
+        var principaux = new Dictionary<string, int>(StringComparer.Ordinal);
+        int sousAgents = 0;
+        bool Recent(string f) => maintenantUtc - File.GetLastWriteTimeUtc(f) < Fenetre;
+        IEnumerable<string> Fichiers(string dossier, string motif)
+        {
+            try { return Directory.Exists(dossier) ? Directory.EnumerateFiles(dossier, motif).Where(Recent).ToList() : []; }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return []; }
+        }
+        IEnumerable<string> Dossiers(string dossier)
+        {
+            try { return Directory.Exists(dossier) ? Directory.EnumerateDirectories(dossier).ToList() : []; }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return []; }
+        }
+        void Ajouter(string agent, int n) { if (n > 0) principaux[agent] = principaux.GetValueOrDefault(agent) + n; }
+
+        // Claude Code (terminal et conversations de l'app Claude) : projects\<projet>\<session>.jsonl, et les sous-agents
+        // dans projects\<projet>\<session>\subagents\*.jsonl. Une conversation qui attend ses sous-agents n'écrit plus
+        // dans son journal : elle compte au travail tant que l'un d'eux travaille.
+        foreach (var projet in Dossiers(Path.Combine(maison, ".claude", "projects")))
+        {
+            var actives = Fichiers(projet, "*.jsonl").Select(Path.GetFileNameWithoutExtension).ToHashSet(StringComparer.Ordinal);
+            foreach (var session in Dossiers(projet))
+            {
+                int sous = Fichiers(Path.Combine(session, "subagents"), "*.jsonl").Count();
+                sousAgents += sous;
+                if (sous > 0) actives.Add(Path.GetFileName(session));
+            }
+            Ajouter("Claude", actives.Count);
+        }
+        // Codex (terminal et app ChatGPT) : sessions\AAAA\MM\JJ\rollout-*.jsonl, du jour et de la veille (minuit, heure locale).
+        var local = maintenantUtc.ToLocalTime();
+        foreach (var jour in new[] { local, local.AddDays(-1) })
+            Ajouter("Codex", Fichiers(Path.Combine(maison, ".codex", "sessions", jour.ToString("yyyy"), jour.ToString("MM"), jour.ToString("dd")), "*.jsonl").Count());
+        // Gemini CLI : tmp\<projet>\chats\*.json.
+        foreach (var projet in Dossiers(Path.Combine(maison, ".gemini", "tmp")))
+            Ajouter("Gemini", Fichiers(Path.Combine(projet, "chats"), "*.json").Count());
+        return new ReleveJournaux(principaux, sousAgents);
     }
 }

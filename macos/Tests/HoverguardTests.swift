@@ -351,3 +351,39 @@ import Testing
         #expect(ReglesDetection.pourcentage(tempsCPU: 0.1, intervalle: 10) < ReglesDetection.seuilActivite)
     }
 }
+
+@Suite struct JournauxAgentsTests {
+    /// Crée un journal dont la date de modification est « il y a `age` secondes ».
+    private func journal(_ racine: URL, _ chemin: String, age: TimeInterval, maintenant: Date) throws {
+        let url = racine.appending(path: chemin)
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        FileManager.default.createFile(atPath: url.path, contents: Data("{}\n".utf8))
+        try FileManager.default.setAttributes([.modificationDate: maintenant.addingTimeInterval(-age)], ofItemAtPath: url.path)
+    }
+
+    @Test func conversationsEtSousAgentsAuTravail() throws {
+        let maison = FileManager.default.temporaryDirectory.appending(path: "hg-journaux-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: maison) }
+        let maintenant = Date(timeIntervalSince1970: 1_793_700_000)
+        let p = ".claude/projects/-Users-moi-projet"
+        try journal(maison, "\(p)/a.jsonl", age: 10, maintenant: maintenant)               // écrit il y a 10 s : au travail
+        try journal(maison, "\(p)/b.jsonl", age: 3_600, maintenant: maintenant)            // au repos
+        try journal(maison, "\(p)/b/subagents/agent-1.jsonl", age: 30, maintenant: maintenant)  // b attend son sous-agent
+        try journal(maison, "\(p)/b/subagents/agent-2.jsonl", age: 40, maintenant: maintenant)
+        try journal(maison, "\(p)/c.jsonl", age: 600, maintenant: maintenant)              // au repos
+        let jour = Calendar.current.dateComponents([.year, .month, .day], from: maintenant)
+        let codex = String(format: ".codex/sessions/%04d/%02d/%02d", jour.year!, jour.month!, jour.day!)
+        try journal(maison, "\(codex)/rollout-1.jsonl", age: 5, maintenant: maintenant)
+        try journal(maison, "\(codex)/rollout-2.jsonl", age: 9_000, maintenant: maintenant)
+
+        let r = JournauxAgents.relever(maison: maison, maintenant: maintenant)
+        #expect(r.principaux == ["Claude": 2, "Codex": 1])
+        #expect(r.sousAgents == 2)
+        #expect(r.totalPrincipaux == 3)
+    }
+
+    @Test func rienQuandAucunAgentNEstInstalle() {
+        let vide = FileManager.default.temporaryDirectory.appending(path: "hg-vide-\(UUID().uuidString)")
+        #expect(JournauxAgents.relever(maison: vide) == ReleveJournaux())
+    }
+}
