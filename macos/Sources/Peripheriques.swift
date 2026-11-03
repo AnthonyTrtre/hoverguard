@@ -126,3 +126,50 @@ enum Inactivite {
         CGEventSource.secondsSinceLastEventType(.hidSystemState, eventType: CGEventType(rawValue: ~0)!)
     }
 }
+
+/// Gardien de la garde : le même exécutable lancé avec `--gardien <pid>`, sans interface, à chaque garde. Si Hoverguard
+/// disparaît pendant la garde (Forcer à quitter, plantage), il verrouille aussitôt la vraie session et relance
+/// Hoverguard : l'écran ne reste jamais ouvert. Il s'arrête seul quand la garde est levée normalement (témoin retiré).
+enum Gardien {
+    static let argument = "--gardien"
+
+    /// Fichier présent tant qu'une garde est posée (lisible par le gardien, un autre processus).
+    static var temoin: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appending(path: "com.utahpik.hoverguard/garde-en-cours")
+    }
+
+    static func poserTemoin(_ pose: Bool) {
+        if pose {
+            try? FileManager.default.createDirectory(at: temoin.deletingLastPathComponent(), withIntermediateDirectories: true)
+            FileManager.default.createFile(atPath: temoin.path, contents: Data())
+        } else {
+            try? FileManager.default.removeItem(at: temoin)
+        }
+    }
+
+    static func lancer() {
+        guard let exe = Bundle.main.executableURL else { return }
+        let p = Process()
+        p.executableURL = exe
+        p.arguments = [argument, String(getpid())]
+        do { try p.run() } catch { Journal.app.error("Gardien : \(error.localizedDescription)") }
+    }
+
+    static func veiller(pid: Int32) -> Never {
+        while FileManager.default.fileExists(atPath: temoin.path) {
+            sleep(1)
+            guard kill(pid, 0) != 0, errno == ESRCH else { continue }
+            guard FileManager.default.fileExists(atPath: temoin.path) else { break }  // garde levée juste avant
+            VerrouSession.verrouiller()
+            Journal.app.error("Hoverguard s'est arrêté pendant la garde : session verrouillée par le gardien")
+            let relance = Process()
+            relance.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+            relance.arguments = ["-g", Bundle.main.bundleURL.path]
+            try? relance.run()
+            relance.waitUntilExit()
+            break
+        }
+        exit(0)
+    }
+}

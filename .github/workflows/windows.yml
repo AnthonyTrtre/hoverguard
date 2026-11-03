@@ -77,6 +77,22 @@ jobs:
           Start-Sleep 5
           "Instances : $((Get-Process Hoverguard).Count)"
           Get-Content "$env:LOCALAPPDATA\Utahpik\Hoverguard\journal.txt" -Tail 10 -ErrorAction SilentlyContinue
+          # Gardien : Hoverguard tué en pleine garde -> session verrouillée et Hoverguard relancé.
+          Get-Process Hoverguard -ErrorAction SilentlyContinue | Stop-Process -Force
+          Start-Sleep 2
+          $temoin = "$env:LOCALAPPDATA\Utahpik\Hoverguard\garde-en-cours"
+          Set-Content $temoin (Get-Date -Format o)
+          $leurre = Start-Process ping -ArgumentList '-n','60','127.0.0.1' -WindowStyle Hidden -PassThru
+          $gardien = Start-Process $installe -ArgumentList '--gardien',$leurre.Id -PassThru
+          Start-Sleep 3
+          if ($gardien.HasExited) { throw "Le gardien s'est arrêté alors que la garde est posée" }
+          Stop-Process -Id $leurre.Id -Force
+          Start-Sleep 8
+          $journal = Get-Content "$env:LOCALAPPDATA\Utahpik\Hoverguard\journal.txt" -Tail 15
+          $journal
+          if (-not ($journal -match "verrouillée par le gardien")) { throw "Le gardien n'a pas verrouillé la session" }
+          if (-not (Get-Process Hoverguard -ErrorAction SilentlyContinue | Where-Object { $_.Id -ne $gardien.Id })) { throw "Hoverguard n'a pas été relancé" }
+          "Gardien : session verrouillée et Hoverguard relancé"
       - name: Exe pour téléchargement
         uses: actions/upload-artifact@v4
         with:

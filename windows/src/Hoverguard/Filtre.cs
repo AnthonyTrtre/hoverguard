@@ -51,8 +51,8 @@ internal sealed class Filtre : IDisposable
 
     public Filtre()
     {
-        procClavier = Clavier;
-        procSouris = Souris;
+        procClavier = (n, w, l) => Proteger(Clavier, n, w, l);
+        procSouris = (n, w, l) => Proteger(Souris, n, w, l);
     }
 
     public EtatGarde Etat
@@ -147,6 +147,18 @@ internal sealed class Filtre : IDisposable
     /// <summary>Touche « masque » injectée après le raccourci : sans elle, relâcher la touche Windows ouvrirait le
     /// menu Démarrer, puisque le W a été avalé.</summary>
     public static void Masquer() => Natif.Envoyer(Natif.Touche(Touches.Masque, false), Natif.Touche(Touches.Masque, true));
+
+    /// <summary>Une exception dans un rappel de crochet tuerait le processus : elle est notée, et sous la garde
+    /// l'entrée est avalée par prudence.</summary>
+    private IntPtr Proteger(Func<int, IntPtr, IntPtr, IntPtr> rappel, int nCode, IntPtr wParam, IntPtr lParam)
+    {
+        try { return rappel(nCode, wParam, lParam); }
+        catch (Exception e)
+        {
+            Journal.Erreur($"Crochet : {e.GetType().Name} {e.Message}");
+            return Etat != EtatGarde.Libre ? new IntPtr(1) : Natif.CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
+        }
+    }
 
     private IntPtr Clavier(int nCode, IntPtr wParam, IntPtr lParam)
     {

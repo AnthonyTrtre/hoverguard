@@ -158,3 +158,48 @@ internal static class TemoinGarde
         catch (Exception e) { Journal.Erreur($"Témoin de garde : {e.Message}"); }
     }
 }
+
+/// <summary>
+/// Gardien de la garde : un second exemplaire de l'exe (<c>Hoverguard.exe --gardien &lt;pid&gt;</c>), sans fenêtre,
+/// lancé à chaque garde. Si Hoverguard disparaît pendant la garde (plantage, Gestionnaire des tâches…), il verrouille
+/// aussitôt la vraie session Windows et relance Hoverguard : l'écran ne reste jamais ouvert. Il s'arrête seul quand la
+/// garde est levée normalement (le témoin disparaît).
+/// </summary>
+internal static class Gardien
+{
+    public const string Argument = "--gardien";
+
+    public static void Lancer()
+    {
+        try
+        {
+            if (Environment.ProcessPath is not string exe) return;
+            Process.Start(new ProcessStartInfo(exe, $"{Argument} {Environment.ProcessId}") { UseShellExecute = false, CreateNoWindow = true });
+        }
+        catch (Exception e) { Journal.Erreur($"Gardien : {e.Message}"); }
+    }
+
+    public static int Veiller(int pid)
+    {
+        Process hoverguard;
+        try { hoverguard = Process.GetProcessById(pid); }
+        catch (ArgumentException) { return 0; }
+        while (TemoinGarde.Present)
+        {
+            if (!hoverguard.WaitForExit(1000)) continue;
+            if (!TemoinGarde.Present) return 0;  // garde levée juste avant la sortie
+            VerrouillerSession();
+            Journal.Erreur("Hoverguard s'est arrêté pendant la garde : session Windows verrouillée par le gardien");
+            try
+            {
+                if (Environment.ProcessPath is string exe)
+                    Process.Start(new ProcessStartInfo(exe, Coeur.ReglesLancement.ArgumentDemarrage) { UseShellExecute = false });
+            }
+            catch (Exception e) { Journal.Erreur($"Gardien, relance : {e.Message}"); }
+            return 0;
+        }
+        return 0;
+    }
+
+    private static void VerrouillerSession() => NatifGarde.VerrouillerSession();
+}

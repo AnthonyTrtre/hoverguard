@@ -165,6 +165,14 @@ internal sealed class FenetreVoile : Window
             await vue.EnsureCoreWebView2Async(environnement);
             Noter("après WebView2");
             var c = vue.CoreWebView2;
+            // Le moteur du drone peut s'arrêter (pilote graphique, mémoire) : on le note et on recharge la page ; le
+            // voile, lui, reste posé (fenêtres WPF natives).
+            c.ProcessFailed += (_, e) =>
+            {
+                Journal.Erreur($"Moteur du drone arrêté ({e.ProcessFailedKind}) : rechargement");
+                try { vue.Reload(); }
+                catch (Exception x) { Journal.Erreur($"Rechargement du drone : {x.Message}"); }
+            };
             var s = c.Settings;
             s.AreDevToolsEnabled = false;
             s.AreDefaultContextMenusEnabled = false;

@@ -21,6 +21,8 @@ internal static class Programme
         VelopackApp.Build()
             .OnBeforeUninstallFastCallback(_ => Inscriptions.Retirer())
             .Run();
+        if (args.Length >= 2 && args[0] == Gardien.Argument && int.TryParse(args[1], out int pid))
+            return Gardien.Veiller(pid);
         if (args.Length >= 1 && args[0] == "--autotest")
             return AutoTest.Lancer(args.Length >= 2 ? args[1] : "autotest");
 
@@ -35,6 +37,11 @@ internal static class Programme
             return 0;
         }
         var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+        // Une erreur imprévue ne doit jamais fermer Hoverguard pendant une garde : elle est notée dans le journal et
+        // l'app continue. (Si elle s'arrête quand même, le gardien verrouille la session.)
+        app.DispatcherUnhandledException += (_, e) => { Journal.Erreur($"Erreur inattendue : {e.Exception}"); e.Handled = true; };
+        AppDomain.CurrentDomain.UnhandledException += (_, e) => Journal.Erreur($"Erreur fatale : {e.ExceptionObject}");
+        TaskScheduler.UnobservedTaskException += (_, e) => { Journal.Erreur($"Erreur en arrière-plan : {e.Exception}"); e.SetObserved(); };
         var hote = new Hote(app);
         canal.Ecouter(texte => app.Dispatcher.BeginInvoke(() => hote.RecevoirUrl(texte)));
         app.Startup += (_, _) =>

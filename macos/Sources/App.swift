@@ -4,7 +4,16 @@ import SocleCore
 import Sparkle
 import SwiftUI
 
+/// Point d'entrée : `--gardien <pid>` fait de ce processus le gardien de la garde (voir `Gardien`), sinon l'app démarre.
 @main
+enum Lanceur {
+    static func main() {
+        let args = CommandLine.arguments
+        if args.count >= 3, args[1] == Gardien.argument, let pid = Int32(args[2]) { Gardien.veiller(pid: pid) }
+        HoverguardApp.main()
+    }
+}
+
 struct HoverguardApp: App {
     @NSApplicationDelegateAdaptor private var delegue: Delegue
 

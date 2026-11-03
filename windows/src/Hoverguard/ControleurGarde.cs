@@ -140,7 +140,11 @@ internal sealed class ControleurGarde
             journal = new JournalAbsence();
             echecs.Reussite();
             luminosite.Noter();
-            if (!Voile.Apercu) TemoinGarde.Poser();
+            if (!Voile.Apercu)
+            {
+                TemoinGarde.Poser();
+                Gardien.Lancer();
+            }
             premierPlan.Start();
             Rafraichir();
             Journal.Info("Garde posée");

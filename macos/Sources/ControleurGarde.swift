@@ -101,7 +101,10 @@ final class ControleurGarde {
     /// Garde posée au dernier arrêt de l'app : si elle est encore vraie au lancement, l'app s'est arrêtée en pleine garde.
     private var gardeEnCours: Bool {
         get { reglages.bool(forKey: "gardeEnCours") }
-        set { reglages.set(newValue, forKey: "gardeEnCours") }
+        set {
+            reglages.set(newValue, forKey: "gardeEnCours")
+            Gardien.poserTemoin(newValue)
+        }
     }
 
     func demarrer() {
@@ -147,6 +150,7 @@ final class ControleurGarde {
         armerTouchIDDiscret()
         if photoIntrus { Task { _ = await Camera.demanderAutorisation() } }  // l'utilisateur est là : bon moment pour demander
         gardeEnCours = !Voile.apercu
+        if gardeEnCours { Gardien.lancer() }
         if !Voile.apercu { Pro.demarrerEssaiSiPremiereGarde() }
         Journal.app.info("Garde posée")
         if Voile.apercu {  // l'aperçu ne bloque rien : il se lève tout seul
