@@ -30,7 +30,6 @@ sous-agents) sont au travail.
   s'approche et demande le mot de passe de la session (sur Windows : le mot de passe Hoverguard choisi au premier
   lancement). Échap le renvoie surveiller.
 - **Un drone 3D** sur chaque écran, en vol stationnaire avec ses lasers quand des agents travaillent, posé sinon.
-- **Le compte des agents**, sous-agents compris, avec une phrase d'équipe qui fait sourire.
 - **Le Mac reste éveillé** pendant la garde, et le voile demande d'être branché s'il passe sur batterie. Un mode
   « garder éveillé » sans voile est aussi dans le menu.
 - **Au retour** : un rapport (durée, agents terminés, tentatives d'accès, photo éventuelle de l'intrus).
