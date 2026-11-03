@@ -253,6 +253,9 @@ private struct MisesAJour: View {
         Section("Mises à jour") {
             Toggle("Vérifier chaque jour s'il existe une nouvelle version", isOn: $verifier)
             Toggle("Installer les mises à jour automatiquement", isOn: $installer).disabled(!verifier)
+            Button("Rechercher des mises à jour maintenant") {
+                NotificationCenter.default.post(name: .rechercherMisesAJour, object: nil)
+            }
             Text("Seule connexion de Hoverguard : la liste des versions publiée sur GitHub. Chaque mise à jour est signée par Utahpik et vérifiée avant d'être installée ; jamais pendant une garde.")
                 .font(.caption).foregroundStyle(.secondary)
         }
@@ -279,4 +282,10 @@ private struct APropos: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
+}
+
+extension Notification.Name {
+    /// Bouton des réglages : le délégué de l'app lance la recherche Sparkle (fenêtre « Hoverguard est à jour » ou
+    /// proposition d'installer).
+    static let rechercherMisesAJour = Notification.Name("com.utahpik.hoverguard.rechercherMisesAJour")
 }

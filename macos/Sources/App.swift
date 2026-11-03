@@ -41,6 +41,9 @@ final class Delegue: NSObject, NSApplicationDelegate, NSMenuDelegate, SPUUpdater
         guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
         Pro.accorderProLancementSiEdition()
         miseAJour = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: self, userDriverDelegate: nil)
+        NotificationCenter.default.addObserver(forName: .rechercherMisesAJour, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.miseAJour?.checkForUpdates(nil) }
+        }
         NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.willPowerOffNotification, object: nil,
                                                           queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.extinction = true }

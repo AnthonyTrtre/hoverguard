@@ -268,7 +268,7 @@ internal sealed class Hote
 
     private void Reglages_(FenetreReglages.Onglet onglet)
     {
-        fenetreReglages ??= new FenetreReglages(garde, eveil, reglages, Enregistrer);
+        fenetreReglages ??= new FenetreReglages(garde, eveil, reglages, Enregistrer) { RechercherMisesAJour = RechercherMiseAJour };
         fenetreReglages.Montrer(onglet);
     }
 }

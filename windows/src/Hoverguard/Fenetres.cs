@@ -22,6 +22,9 @@ internal sealed class FenetreReglages : Window
     private readonly Reglages reglages;
     private readonly Action enregistrer;
 
+    /// <summary>Bouton « Rechercher des mises à jour maintenant » : branché par l'hôte (même action que le menu).</summary>
+    public Action? RechercherMisesAJour { get; set; }
+
     public FenetreReglages(ControleurGarde garde, ControleurEveil eveil, Reglages reglages, Action enregistrer)
     {
         this.garde = garde;
@@ -139,6 +142,7 @@ internal sealed class FenetreReglages : Window
         p.Children.Add(Case("Ouvrir Hoverguard à l'ouverture de session", Inscriptions.OuvertureAuDemarrage, v => Inscriptions.OuvertureAuDemarrage = v));
         p.Children.Add(Titre("Mises à jour"));
         p.Children.Add(Case("Installer les mises à jour automatiquement", reglages.MisesAJourAuto, v => { reglages.MisesAJourAuto = v; enregistrer(); }));
+        p.Children.Add(Bouton("Rechercher des mises à jour maintenant", () => RechercherMisesAJour?.Invoke()));
         p.Children.Add(Note("Une fois par jour, Hoverguard regarde la dernière version publiée sur GitHub (seule connexion réseau de l'app). Elle s'installe quand le PC est inutilisé depuis 10 minutes ou quand vous quittez Hoverguard, jamais pendant une garde."));
         return new ScrollViewer { Content = p, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
     }
@@ -196,7 +200,7 @@ internal sealed class FenetreReglages : Window
 
     private static Button Bouton(string texte, Action action)
     {
-        var b = new Button { Content = texte, Padding = new Thickness(10, 2, 10, 2), Margin = new Thickness(0, 0, 8, 0) };
+        var b = new Button { Content = texte, Padding = new Thickness(10, 2, 10, 2), Margin = new Thickness(0, 0, 8, 0), HorizontalAlignment = HorizontalAlignment.Left };
         b.Click += (_, _) => action();
         return b;
     }
