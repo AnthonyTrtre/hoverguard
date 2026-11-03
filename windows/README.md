@@ -14,7 +14,8 @@ Hoverguard vit dans la zone de notification, près de l'horloge : un clic gauche
 Téléchargez `Hoverguard-Setup.exe` dans les [Releases](https://github.com/AnthonyTrtre/hoverguard/releases/latest) et
 lancez-le. L'installateur ([Velopack](https://velopack.io), MIT) installe Hoverguard pour votre compte dans
 `%LOCALAPPDATA%\Hoverguard` (aucun droit d'administrateur : c'est aussi ce qui permet des mises à jour silencieuses),
-ajoute un raccourci au menu Démarrer et ouvre l'app. Le fichier téléchargé peut ensuite être supprimé. Désinstaller :
+ajoute un raccourci au menu Démarrer et ouvre ses réglages : choisissez alors votre **mot de passe Hoverguard**,
+sans lequel la garde ne se pose pas. Le fichier téléchargé peut ensuite être supprimé. Désinstaller :
 Paramètres › Applications › Applications installées › Hoverguard (le schéma `hoverguard://` et l'ouverture au
 démarrage sont retirés).
 
@@ -59,7 +60,6 @@ L'exe est dans `windows/publication/Hoverguard.exe`. Depuis Linux ou macOS, `dot
 |---|---|
 | Poser la garde | **Ctrl + Win + W** (ou le menu de l'icône) |
 | Réveiller la garde | n'importe quelle touche ou clic (le drone s'approche) |
-| Windows Hello | proposé tout de suite au réveil ; **F2** pour le relancer |
 | Valider le mot de passe | Entrée |
 | Renvoyer le drone surveiller | **Échap** (ou une minute sans rien taper) |
 
@@ -155,13 +155,13 @@ après s'être arrêté en pleine garde.
 
 ## Lever la garde
 Appuyez sur une touche : le drone fonce vers vous et l'identification s'affiche sur l'écran principal.
-- **Windows Hello** (visage, empreinte) est proposé tout de suite s'il est configuré ; F2 le relance. Il reste
-  possible quel que soit le nombre d'erreurs de mot de passe. Le code PIN, lui, ne peut pas être tapé sous la garde
-  (le clavier n'atteint aucune fenêtre) : utilisez le mot de passe.
-- **Le mot de passe de la session** est vérifié par Windows (`LogonUser`), jamais stocké ni journalisé ; il ne transite
-  que par un `SecureString` rempli par le crochet. 4 essais libres, puis 3 s, 6 s, 9 s… jusqu'à 2 min d'attente (Échap
-  ne la raccourcit pas).
-  Attention : chaque essai faux compte pour la stratégie de verrouillage du compte (PC d'entreprise).
+- **Le mot de passe Hoverguard**, choisi au premier lancement (Réglages › Garde, modifiable écran libre), est le seul
+  moyen de lever la garde : ni Windows Hello ni le mot de passe de la session. Il peut être le même que votre code
+  Windows. Seule son empreinte salée (PBKDF2-SHA256) est enregistrée ; le texte tapé ne transite que par un
+  `SecureString` rempli par le crochet. 4 essais libres, puis 3 s, 6 s, 9 s… jusqu'à 2 min d'attente (Échap ne la
+  raccourcit pas).
+- **Mot de passe oublié sous la garde** : Ctrl + Alt + Suppr › Se déconnecter (ou redémarrer) ; choisissez-en un
+  nouveau ensuite dans les réglages.
 - **Échap** renvoie le drone surveiller ; une minute sans rien taper aussi.
 
 ## Garder le PC éveillé
@@ -247,7 +247,7 @@ composants, rapports…) sont coupés par des options de lancement.
 - `Hoverguard.exe --autotest <dossier>` (lancé par la CI sur `windows-latest`) mesure sur un vrai Windows : styles et
   opacité du voile, exclusion des captures, clic et frappes injectés qui traversent le voile, sonde du crochet, rendu du
   drone, et l'occlusion d'Edge sous différents types de fenêtres. Les captures sont jointes à la CI (artefact
-  `autotest`). Il ne peut pas tester le vrai clavier, la vraie souris, Windows Hello, la webcam ni plusieurs écrans.
+  `autotest`). Il ne peut pas tester le vrai clavier, la vraie souris, la webcam ni plusieurs écrans.
 
 ---
 © 2026 Utahpik.

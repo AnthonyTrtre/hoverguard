@@ -79,6 +79,48 @@ internal sealed class FenetreReglages : Window
     private UIElement OngletGarde()
     {
         var p = Page();
+        p.Children.Add(Titre("Mot de passe Hoverguard"));
+        var etat = new TextBlock
+        {
+            Text = garde.MotDePasseApp is null ? "Choisissez un mot de passe : sans lui, la garde ne peut pas être posée." : "Mot de passe choisi ✓",
+            Foreground = garde.MotDePasseApp is null ? Brushes.IndianRed : Brushes.SeaGreen, Margin = new Thickness(0, 0, 0, 6),
+        };
+        p.Children.Add(etat);
+        var nouveau = new PasswordBox { Width = 260, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 2, 0, 4) };
+        var confirmation = new PasswordBox { Width = 260, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 2, 0, 4) };
+        p.Children.Add(new TextBlock { Text = garde.MotDePasseApp is null ? "Mot de passe :" : "Nouveau mot de passe :" });
+        p.Children.Add(nouveau);
+        p.Children.Add(new TextBlock { Text = "Confirmation :" });
+        p.Children.Add(confirmation);
+        Button? enregistrerMdp = null;
+        enregistrerMdp = Bouton("Enregistrer le mot de passe", async () =>
+        {
+            using var a = nouveau.SecurePassword;
+            using var b = confirmation.SecurePassword;
+            if (a.Length < MotDePasseHoverguard.LongueurMinimale)
+            {
+                etat.Text = $"{MotDePasseHoverguard.LongueurMinimale} caractères au moins."; etat.Foreground = Brushes.IndianRed; return;
+            }
+            enregistrerMdp!.IsEnabled = false;
+            var m = await System.Threading.Tasks.Task.Run(() => MotDePasseHoverguard.Creer(a));
+            bool identiques = await System.Threading.Tasks.Task.Run(() => m.Verifier(b));
+            enregistrerMdp!.IsEnabled = true;
+            if (!identiques) { etat.Text = "Les deux mots de passe sont différents."; etat.Foreground = Brushes.IndianRed; return; }
+            try
+            {
+                m.Enregistrer(Dossiers.MotDePasse);
+                garde.MotDePasseApp = m;
+                nouveau.Clear(); confirmation.Clear();
+                etat.Text = "Mot de passe choisi ✓"; etat.Foreground = Brushes.SeaGreen;
+                Journal.Info("Mot de passe Hoverguard enregistré");
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                etat.Text = $"Impossible d'enregistrer : {e.Message}"; etat.Foreground = Brushes.IndianRed;
+            }
+        });
+        p.Children.Add(enregistrerMdp);
+        p.Children.Add(Note("C'est ce mot de passe, et lui seul, qui lève la garde (4 caractères au moins ; il peut être le même que votre code Windows). Il n'est jamais enregistré en clair. Oublié ? Choisissez-en un autre ici quand l'écran est libre ; sous la garde, Ctrl + Alt + Suppr › Se déconnecter ferme tout."));
         p.Children.Add(Titre("Poser la garde"));
         p.Children.Add(new TextBlock { Text = $"Raccourci : {Regles.Raccourci}   (ou le menu de l'icône)" });
         p.Children.Add(new TextBlock { Text = "Toute seule après :", Margin = new Thickness(0, 10, 0, 4) });
@@ -91,7 +133,7 @@ internal sealed class FenetreReglages : Window
         p.Children.Add(phrase);
         p.Children.Add(Note("Vide = une phrase drôle au hasard à chaque garde."));
         p.Children.Add(Titre("Lever la garde"));
-        p.Children.Add(Note("Appuyez sur une touche : le drone s'approche et demande Windows Hello (visage, empreinte, code PIN) ou le mot de passe de la session. Échap renvoie le drone surveiller."));
+        p.Children.Add(Note("Appuyez sur une touche : le drone s'approche et demande votre mot de passe Hoverguard. Échap renvoie le drone surveiller."));
         p.Children.Add(Case("Ouvrir le rapport de la garde au déverrouillage", reglages.RapportAuRetour, v => { reglages.RapportAuRetour = v; enregistrer(); }));
         p.Children.Add(Note("Sinon, le rapport attend dans le menu de l'icône : « Rapport de la dernière garde… »."));
         p.Children.Add(Case("Ouvrir Hoverguard à l'ouverture de session", Inscriptions.OuvertureAuDemarrage, v => Inscriptions.OuvertureAuDemarrage = v));

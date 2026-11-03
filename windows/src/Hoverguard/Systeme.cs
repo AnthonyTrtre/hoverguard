@@ -14,6 +14,8 @@ internal static class Dossiers
     /// <summary><c>%LOCALAPPDATA%\Utahpik\Hoverguard</c> : journal, photos d'intrus, cache du moteur WebView2.</summary>
     public static string Local => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Utahpik", "Hoverguard");
     public static string Reglages => Path.Combine(Itinerant, "reglages.json");
+    /// <summary>Empreinte du mot de passe Hoverguard (jamais le mot de passe lui-même).</summary>
+    public static string MotDePasse => Path.Combine(Itinerant, "motdepasse.json");
     public static string Intrus => Path.Combine(Local, "intrus");
     public static string WebView2 => Path.Combine(Local, "WebView2");
     public static string JournalFichier => Path.Combine(Local, "journal.txt");

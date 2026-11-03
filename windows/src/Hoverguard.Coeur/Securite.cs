@@ -8,8 +8,6 @@ public enum GenreSaisie
     Effacer,
     Valider,
     Annuler,
-    /// <summary>F2 : demander Windows Hello.</summary>
-    Hello,
 }
 
 /// <summary>Ce qu'une touche physique fait au mot de passe tapé sous le voile (équivalent de <c>ActionSaisie</c> sur
@@ -34,7 +32,6 @@ public readonly record struct ActionSaisie(GenreSaisie Genre, char A = '\0', cha
             case Touches.Effacement or Touches.Suppr: return new(GenreSaisie.Effacer);
             case Touches.Entree: return new(GenreSaisie.Valider);
             case Touches.Echap: return new(GenreSaisie.Annuler);
-            case Touches.F2: return new(GenreSaisie.Hello);
         }
         if (win || (ctrl && !alt) || (alt && !ctrl)) return null;  // raccourcis : rien n'est tapé
         if (caracteres.Length is 0 or > 2) return null;

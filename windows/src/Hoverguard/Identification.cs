@@ -9,14 +9,13 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
-using Windows.Security.Credentials.UI;
 using Forms = System.Windows.Forms;
 
 namespace Hoverguard;
 
 /// <summary>
-/// Demande d'identification affichée sur l'écran principal quand le drone s'approche : Windows Hello, ou le mot de
-/// passe de la session. Fenêtre WPF native (et non dans la page du drone), exclue des captures, qui NE PREND PAS le
+/// Demande d'identification affichée sur l'écran principal quand le drone s'approche : le mot de passe Hoverguard,
+/// choisi par l'utilisateur dans les réglages. Fenêtre WPF native (et non dans la page du drone), exclue des captures, qui NE PREND PAS le
 /// clavier (<c>WS_EX_NOACTIVATE</c>) : le crochet clavier avale les touches et le contrôleur remplit le mot de passe
 /// (<see cref="Hoverguard.Coeur.TamponMotDePasse"/>, un SecureString). La fenêtre n'affiche que des points.
 /// </summary>
@@ -28,7 +27,7 @@ internal sealed class FenetreIdentification : Window
     public IntPtr Hwnd { get; private set; }
     public DateTime DerniereActivite { get; private set; } = DateTime.UtcNow;
 
-    public FenetreIdentification(bool helloDisponible)
+    public FenetreIdentification()
     {
         Title = "Hoverguard — identification";
         WindowStyle = WindowStyle.None;
@@ -53,8 +52,7 @@ internal sealed class FenetreIdentification : Window
         {
             Foreground = (Brush)new SolidColorBrush(Color.FromArgb(115, 255, 255, 255)).GetAsFrozen(), FontSize = 13,
             Margin = new Thickness(0, 18, 0, 0), TextAlignment = TextAlignment.Center,
-            Text = helloDisponible ? "Entrée pour valider · F2 : Windows Hello · Échap pour laisser le drone surveiller"
-                                   : "Entrée pour valider · Échap pour laisser le drone surveiller",
+            Text = "Entrée pour valider · Échap pour laisser le drone surveiller",
         };
         Content = new Border
         {
@@ -68,7 +66,7 @@ internal sealed class FenetreIdentification : Window
                     new TextBlock { Text = "Identification", FontSize = 26, FontWeight = FontWeights.SemiBold, Foreground = Brushes.White, HorizontalAlignment = HorizontalAlignment.Center },
                     new TextBlock
                     {
-                        Text = (helloDisponible ? "Windows Hello, ou le mot de passe de " : "Le mot de passe de ") + NomAffiche(),
+                        Text = "Votre mot de passe Hoverguard",
                         Foreground = blanc, FontSize = 15, Margin = new Thickness(0, 8, 0, 0), HorizontalAlignment = HorizontalAlignment.Center,
                     },
                     cadreSaisie, erreur, aide,
@@ -131,68 +129,5 @@ internal sealed class FenetreIdentification : Window
             erreur.Visibility = value is null ? Visibility.Collapsed : Visibility.Visible;
             cadreSaisie.BorderBrush = value is null ? Cyan : Brushes.IndianRed;
         }
-    }
-}
-
-/// <summary>Vérifie le mot de passe de la session avec <c>LogonUser</c>, sans jamais le stocker, le copier dans une
-/// chaîne .NET ni le journaliser : le texte n'existe en clair que le temps de l'appel, dans un tampon effacé ensuite.
-/// Attention : chaque essai faux compte pour la stratégie de verrouillage du compte (entreprises) ; d'où l'attente
-/// croissante après 4 erreurs.</summary>
-internal static class MotDePasse
-{
-    public static Task<bool> Verifier(SecureString motDePasse) => Task.Run(() =>
-    {
-        if (motDePasse.Length == 0) return false;
-        IntPtr clair = IntPtr.Zero;
-        try
-        {
-            clair = Marshal.SecureStringToGlobalAllocUnicode(motDePasse);
-            if (Essayer(Environment.UserName, Environment.UserDomainName, clair, out int erreur)) return true;
-            // Comptes Microsoft Entra (Azure AD) : le nom court ne suffit pas toujours, on essaie le nom principal.
-            if (erreur != Natif.ERROR_LOGON_FAILURE && NomPrincipal() is string upn) return Essayer(upn, null, clair, out _);
-            return false;
-        }
-        finally
-        {
-            if (clair != IntPtr.Zero) Marshal.ZeroFreeGlobalAllocUnicode(clair);
-        }
-    });
-
-    private static bool Essayer(string utilisateur, string? domaine, IntPtr motDePasse, out int erreur)
-    {
-        bool ok = Natif.LogonUser(utilisateur, domaine, motDePasse, Natif.LOGON32_LOGON_INTERACTIVE, Natif.LOGON32_PROVIDER_DEFAULT, out var jeton);
-        erreur = ok ? 0 : Marshal.GetLastWin32Error();
-        if (ok) Natif.CloseHandle(jeton);
-        return ok;
-    }
-
-    private static string? NomPrincipal()
-    {
-        uint taille = 512;
-        var nom = new StringBuilder((int)taille);
-        return Natif.GetUserNameEx(Natif.NameUserPrincipal, nom, ref taille) && nom.Length > 0 ? nom.ToString() : null;
-    }
-}
-
-/// <summary>Windows Hello (visage, empreinte, code PIN), rattaché à la fenêtre d'identification pour que la demande
-/// s'affiche au-dessus du voile.</summary>
-internal static class WindowsHello
-{
-    public static async Task<bool> Disponible()
-    {
-        try { return await UserConsentVerifier.CheckAvailabilityAsync() == UserConsentVerifierAvailability.Available; }
-        catch (Exception e) { Journal.Erreur($"Windows Hello : {e.Message}"); return false; }
-    }
-
-    public static async Task<bool> Verifier(IntPtr fenetre, CancellationToken annulation)
-    {
-        try
-        {
-            var resultat = await UserConsentVerifierInterop.RequestVerificationForWindowAsync(fenetre, "Lever la garde de l'écran")
-                .AsTask(annulation);
-            return resultat == UserConsentVerificationResult.Verified;
-        }
-        catch (OperationCanceledException) { return false; }
-        catch (Exception e) { Journal.Erreur($"Windows Hello : {e.Message}"); return false; }
     }
 }

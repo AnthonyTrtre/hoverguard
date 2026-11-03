@@ -32,9 +32,11 @@ internal sealed class ControleurGarde
     /// <summary>Écrans changés, réveil : on attend que les changements se calment avant de reposer le voile.</summary>
     private readonly DispatcherTimer reposer = new() { Interval = TimeSpan.FromMilliseconds(700) };
     private FenetreIdentification? identification;
-    private CancellationTokenSource? hello;
-    private bool helloDisponible;
     private bool verification;
+    /// <summary>Le mot de passe Hoverguard (empreinte) : lui seul lève la garde. Sans lui, la garde ne se pose pas.</summary>
+    public MotDePasseHoverguard? MotDePasseApp { get; set; } = MotDePasseHoverguard.Charger(Dossiers.MotDePasse);
+    /// <summary>Appelé quand on veut poser la garde sans avoir choisi de mot de passe.</summary>
+    public Action? MotDePasseManquant { get; set; }
     /// <summary>Mot de passe rempli par le crochet clavier : aucune frappe physique n'atteint les apps.</summary>
     private readonly TamponMotDePasse motDePasse = new();
     private readonly CompteurEchecs echecs = new();
@@ -95,12 +97,17 @@ internal sealed class ControleurGarde
         };
         surveillance.Start();
         Detecter();  // premier relevé : la référence des temps processeur
-        _ = Task.Run(async () => helloDisponible = await WindowsHello.Disponible());
     }
 
     public async Task Verrouiller()
     {
         if (Etat != EtatGarde.Libre || enPose) return;
+        if (MotDePasseApp is null)
+        {
+            Journal.Info("Garde non posée : aucun mot de passe Hoverguard choisi");
+            MotDePasseManquant?.Invoke();
+            return;
+        }
         if (!Filtre.Actif && !Filtre.Demarrer())
         {
             Avertir("Filtre clavier et souris indisponible",
@@ -146,7 +153,6 @@ internal sealed class ControleurGarde
         if (Etat == EtatGarde.Libre) return;
         Etat = EtatGarde.Libre;
         Filtre.Etat = Etat;
-        hello?.Cancel();
         FermerIdentification();
         premierPlan.Stop();
         luminosite.Oublier();
@@ -178,8 +184,8 @@ internal sealed class ControleurGarde
     /// retiré pour que le prochain lancement ne verrouille pas la session.</summary>
     public void FinDeSession() => TemoinGarde.Retirer();
 
-    /// <summary>Une touche ou un clic sous la garde : le drone fonce vers l'utilisateur et demande Windows Hello ou
-    /// le mot de passe. La fenêtre d'identification ne prend pas le clavier : le crochet le lit pour elle.</summary>
+    /// <summary>Une touche ou un clic sous la garde : le drone fonce vers l'utilisateur et demande le mot de passe
+    /// Hoverguard. La fenêtre d'identification ne prend pas le clavier : le crochet le lit pour elle.</summary>
     private void Reveiller()
     {
         if (Etat != EtatGarde.Garde) return;
@@ -189,28 +195,10 @@ internal sealed class ControleurGarde
         Voile.Etat.Approche = true;
         Voile.Actualiser();
         motDePasse.Vider();
-        identification = new FenetreIdentification(helloDisponible);
+        identification = new FenetreIdentification();
         identification.Montrer();
         _ = AfficherAttente();  // attente imposée encore en cours après des mots de passe faux
         SurChangement();
-        if (helloDisponible) _ = DemanderHello();
-    }
-
-    private async Task DemanderHello()
-    {
-        if (Etat != EtatGarde.Authentification || identification is null || hello is not null) return;
-        hello = new CancellationTokenSource();
-        try
-        {
-            bool ok = await WindowsHello.Verifier(identification.Hwnd, hello.Token);
-            if (ok && Etat == EtatGarde.Authentification) { echecs.Reussite(); Deverrouiller(); return; }
-        }
-        finally
-        {
-            hello?.Dispose();
-            hello = null;
-        }
-        if (Etat == EtatGarde.Authentification) identification?.Montrer();  // retour au mot de passe
     }
 
     /// <summary>Échap ou une minute sans rien taper : le drone retourne surveiller.</summary>
@@ -219,7 +207,6 @@ internal sealed class ControleurGarde
         if (Etat != EtatGarde.Authentification) return;
         Etat = EtatGarde.Garde;
         Filtre.Etat = Etat;
-        hello?.Cancel();
         FermerIdentification();
         Voile.Etat.Approche = false;
         Voile.Actualiser();
@@ -246,7 +233,6 @@ internal sealed class ControleurGarde
             case GenreSaisie.Effacer: if (!occupe) motDePasse.Effacer(); break;
             case GenreSaisie.Valider: _ = ValiderMotDePasse(); break;
             case GenreSaisie.Annuler: AnnulerReveil(); return;
-            case GenreSaisie.Hello: if (helloDisponible) _ = DemanderHello(); break;
         }
         f.Points = motDePasse.Longueur;
     }
@@ -260,7 +246,8 @@ internal sealed class ControleurGarde
         f.Occupe = true;
         f.Erreur = null;
         bool ok;
-        using (var saisi = motDePasse.Prendre()) ok = await MotDePasse.Verifier(saisi);
+        var attendu = MotDePasseApp;
+        using (var saisi = motDePasse.Prendre()) ok = attendu is not null && await Task.Run(() => attendu.Verifier(saisi));
         verification = false;
         f.Points = 0;
         if (ok)
@@ -276,7 +263,7 @@ internal sealed class ControleurGarde
         if (journal?.FautPhotographier == true) _ = PhotographierIntrus();
         if (Etat != EtatGarde.Authentification || identification != f) return;
         // 4 essais libres, puis une attente croissante (3 s, 6 s… 2 min au plus), portée par la garde : Échap puis
-        // un nouveau réveil ne la raccourcit pas. Windows Hello reste possible (F2) quel que soit le nombre d'erreurs.
+        // un nouveau réveil ne la raccourcit pas.
         if (attente is null) { f.Occupe = false; f.Erreur = "Mot de passe incorrect"; return; }
         await AfficherAttente();
     }
@@ -288,7 +275,7 @@ internal sealed class ControleurGarde
         var reste = echecs.Restant(DateTime.UtcNow);
         if (f is null || reste <= TimeSpan.Zero) return;
         f.Occupe = true;
-        f.Erreur = $"Mot de passe incorrect. Patientez {(int)Math.Ceiling(reste.TotalSeconds)} s{(helloDisponible ? ", ou utilisez Windows Hello (F2)" : "")}.";
+        f.Erreur = $"Mot de passe incorrect. Patientez {(int)Math.Ceiling(reste.TotalSeconds)} s.";
         await Task.Delay(reste);
         if (identification != f) return;
         f.Occupe = false;
@@ -328,9 +315,9 @@ internal sealed class ControleurGarde
 
     private void Surveiller()
     {
-        // Personne ne tape depuis une minute (deux si Windows Hello attend un visage ou un doigt) : retour à la garde.
+        // Personne ne tape depuis une minute : retour à la garde.
         if (Etat == EtatGarde.Authentification && identification is not null && !verification
-            && DateTime.UtcNow - identification.DerniereActivite > ReglesGarde.SaisieAbandonnee * (hello is null ? 1 : 2))
+            && DateTime.UtcNow - identification.DerniereActivite > ReglesGarde.SaisieAbandonnee)
             AnnulerReveil();
         Detecter();
         journal?.SousAgents(Agents.SousAgents());
@@ -355,7 +342,7 @@ internal sealed class ControleurGarde
 
     /// <summary>Sans filtre, plus rien ne bloque ni ne réveille : on ne lève pas la garde en laissant le PC ouvert, on
     /// verrouille la vraie session Windows (les agents en ligne de commande continuent ; le propriétaire entre avec
-    /// son mot de passe ou Windows Hello).</summary>
+    /// son mot de passe Windows).</summary>
     private void PanneDuFiltre()
     {
         if (Etat == EtatGarde.Libre) return;

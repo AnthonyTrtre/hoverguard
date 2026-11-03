@@ -27,7 +27,8 @@ sous-agents) sont au travail.
   envoyés par les logiciels ; seules les entrées du matériel (clavier, souris, trackpad) sont bloquées. Les
   applications dessous restent « visibles » pour le système : le navigateur ne se met pas en veille.
 - **On revient comme sur un Mac en veille** : poser le doigt sur Touch ID suffit, ou appuyer sur une touche — le drone
-  s'approche et demande le mot de passe de la session. Échap le renvoie surveiller.
+  s'approche et demande le mot de passe de la session (sur Windows : le mot de passe Hoverguard choisi au premier
+  lancement). Échap le renvoie surveiller.
 - **Un drone 3D** sur chaque écran, en vol stationnaire avec ses lasers quand des agents travaillent, posé sinon.
 - **Le compte des agents**, sous-agents compris, avec une phrase d'équipe qui fait sourire.
 - **Le Mac reste éveillé** pendant la garde, et le voile demande d'être branché s'il passe sur batterie. Un mode
@@ -56,11 +57,20 @@ cd macos && make installer
 ```
 
 ### Windows 10 (version 2004 ou plus récent) / 11
-Téléchargez `Hoverguard-Setup.exe` dans les [Releases](../../releases) et lancez-le : Hoverguard s'installe pour
-votre compte (sans droits d'administrateur), avec un raccourci dans le menu Démarrer, puis s'ouvre. Le fichier
-téléchargé peut ensuite être supprimé. Son icône est près de l'horloge (sous la flèche ^). Raccourci
-**Ctrl + Win + W** ; Windows Hello ou le mot de passe de la session pour lever la garde. Installation, raccourcis et
-limites : [windows/README.md](windows/README.md).
+1. **Téléchargez** [`Hoverguard-Setup.exe`](https://github.com/AnthonyTrtre/hoverguard/releases/latest/download/Hoverguard-Setup.exe).
+2. **Edge bloque le téléchargement** (« n'est pas fréquemment téléchargé ») : c'est normal, l'installateur n'est pas
+   signé par un éditeur payant. Survolez le fichier dans la liste des téléchargements, cliquez sur **⋯** ›
+   **Conserver**, puis **Afficher plus** › **Conserver quand même**.
+3. **Lancez `Hoverguard-Setup.exe`**. Si Windows affiche « Windows a protégé votre ordinateur », cliquez sur
+   **Informations complémentaires** › **Exécuter quand même**.
+4. Hoverguard s'installe pour votre compte (sans droits d'administrateur), avec un raccourci dans le menu Démarrer,
+   et ouvre ses réglages : **choisissez votre mot de passe Hoverguard** (4 caractères au moins, il peut être le même
+   que votre code Windows). C'est lui qui lèvera la garde.
+5. C'est prêt. L'icône est près de l'horloge (sous la flèche **^** : glissez-la dans la barre des tâches pour la
+   garder visible). **Ctrl + Win + W** pose la garde. Le fichier téléchargé peut être supprimé.
+
+Ces avertissements n'apparaissent qu'à l'installation : les mises à jour arrivent ensuite toutes seules. Détails,
+raccourcis et limites : [windows/README.md](windows/README.md).
 
 ## Brancher vos agents
 Menu Hoverguard › Réglages › Agents : un clic ajoute les « hooks » de Claude Code, Codex, Gemini CLI ou Cursor (une

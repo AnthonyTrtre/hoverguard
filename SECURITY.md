@@ -75,10 +75,13 @@ Même modèle de menace et mêmes choix que sur macOS ; ce qui change :
   les touches, les traduit lui-même (`ToUnicodeEx`, disposition du clavier de la fenêtre active, AltGr et touches mortes
   compris) et remplit le mot de passe ; la fenêtre d'identification ne prend pas le clavier (`WS_EX_NOACTIVATE`).
   Même si le terminal d'un agent a le focus, le mot de passe ne peut pas y partir.
-- **Mot de passe** vérifié par `LogonUser`, jamais stocké, converti en chaîne .NET ou journalisé : il vit dans un
-  `SecureString` et un tampon effacé après l'appel. 4 essais libres, puis 3 s, 6 s… jusqu'à 2 min d'attente ; l'échec
-  compte même si Échap est pressé pendant la vérification, et Échap ne raccourcit pas l'attente. Chaque essai faux
-  compte aussi pour la stratégie de verrouillage du compte. **Windows Hello** reste toujours possible.
+- **Mot de passe Hoverguard** : choisi par l'utilisateur au premier lancement (4 caractères au moins), c'est le seul
+  moyen de lever la garde (ni Windows Hello ni le mot de passe de la session). Seule une empreinte PBKDF2-SHA256 salée
+  (600 000 itérations) est enregistrée dans `%APPDATA%\Utahpik\Hoverguard\motdepasse.json` ; le texte tapé vit dans un
+  `SecureString` et des tampons effacés après le calcul, jamais dans une chaîne .NET ni dans le journal. Sans mot de
+  passe choisi, la garde ne se pose pas. 4 essais libres, puis 3 s, 6 s… jusqu'à 2 min d'attente ; l'échec compte
+  même si Échap est pressé pendant la vérification, et Échap ne raccourcit pas l'attente. Mot de passe oublié sous la
+  garde : Ctrl + Alt + Suppr › Se déconnecter (la session Windows protège alors le PC).
 - **Quand la garde ne peut plus être garantie, la vraie session Windows est verrouillée** (`LockWorkStation`, ou à
   défaut l'écran est éteint) au lieu de lever la garde : crochet retiré par Windows (une sonde le détecte en quelques
   secondes ; il est d'abord reposé), Narrateur ou lecteur d'écran activé, voile impossible à reposer, ou relancement de
@@ -110,8 +113,8 @@ Même modèle de menace et mêmes choix que sur macOS ; ce qui change :
   leur sont destinées. Si une telle fenêtre a le clavier pendant la garde, les touches physiques l'atteignent.
 - **Écrans tactiles et stylets** : filtrés seulement quand Windows les transforme en messages souris ; les gestes du
   pavé tactile traités par le système (bureaux virtuels…) et le clavier tactile (entrées injectées) passent.
-- **Windows Hello par code PIN** : impossible sous la garde, puisque le clavier physique n'atteint aucune fenêtre ;
-  le visage et l'empreinte marchent, sinon le mot de passe.
+- **Changer le mot de passe Hoverguard** est possible écran libre, sans l'ancien : la personne devant un PC sans garde
+  a déjà tout l'accès. Ce mot de passe protège la sortie de la garde, pas vos données.
 - **Installateur non signé** : Edge et Windows SmartScreen avertissent au téléchargement et au premier lancement.
   Compilez depuis les sources si vous préférez.
 - **Mises à jour (Windows)** : [Velopack](https://github.com/velopack/velopack) 1.2.161 (MIT), version épinglée. Les

@@ -5,7 +5,7 @@ public enum EtatGarde
     Libre,
     /// <summary>Voile posé, clavier et souris physiques bloqués ; Claude et les autres agents passent.</summary>
     Garde,
-    /// <summary>Une touche ou un clic a « réveillé » la garde : Windows Hello / mot de passe à l'écran.</summary>
+    /// <summary>Une touche ou un clic a « réveillé » la garde : le mot de passe Hoverguard est demandé.</summary>
     Authentification,
 }
 
@@ -109,8 +109,7 @@ public static class Regles
 
 public static class ReglesGarde
 {
-    /// <summary>Mots de passe faux : 4 essais libres, puis 3 s, 6 s, 9 s… plafonné à 2 min (comme sur macOS).
-    /// Windows Hello reste possible.</summary>
+    /// <summary>Mots de passe faux : 4 essais libres, puis 3 s, 6 s, 9 s… plafonné à 2 min (comme sur macOS).</summary>
     public static TimeSpan? AttenteApres(int echecs)
         => echecs < 5 ? null : TimeSpan.FromSeconds(Math.Min((echecs - 4) * 3, 120));
 

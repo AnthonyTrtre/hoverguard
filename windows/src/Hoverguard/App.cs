@@ -99,6 +99,7 @@ internal sealed class Hote
                 typeof(Forms.NotifyIcon).GetMethod("ShowContextMenu", BindingFlags.Instance | BindingFlags.NonPublic)?.Invoke(icone, null);
         };
         garde.SurChangement = RafraichirIcone;
+        garde.MotDePasseManquant = DemanderMotDePasse;
         eveil.SurChangement = RafraichirIcone;
         garde.Demarrer();
         // Mode Windows clair ou sombre changé : l'icône de notification suit la couleur de la barre des tâches.
@@ -108,6 +109,7 @@ internal sealed class Hote
         minuterieMaj.Tick += (_, _) => _ = MiseAJourAutomatique();
         minuterieMaj.Start();
         Journal.Info($"Hoverguard démarré ({Environment.OSVersion.Version})");
+        if (garde.MotDePasseApp is null) DemanderMotDePasse();
     }
 
     public void FinDeSession() => garde.FinDeSession();
@@ -118,6 +120,14 @@ internal sealed class Hote
     {
         if (garde.Etat != EtatGarde.Libre) return;
         Bulle("Hoverguard est lancé", $"Son icône est près de l'horloge (sous la flèche ^ si elle est cachée). {Regles.Raccourci} pose la garde.");
+        Reglages_(FenetreReglages.Onglet.Garde);
+    }
+
+    /// <summary>Premier lancement (ou garde demandée sans mot de passe) : les réglages s'ouvrent sur le choix du mot de
+    /// passe Hoverguard, sans lequel la garde ne se pose pas.</summary>
+    private void DemanderMotDePasse()
+    {
+        Bulle("Choisissez votre mot de passe Hoverguard", "C'est lui qui lèvera la garde. Réglages › Garde.");
         Reglages_(FenetreReglages.Onglet.Garde);
     }
 
@@ -158,7 +168,7 @@ internal sealed class Hote
             Bulle("Mise à jour prête", $"La version {version} s'installera après la garde.");
     }
 
-    /// <summary>Quitter est refusé pendant la garde : seuls Windows Hello et le mot de passe la lèvent.</summary>
+    /// <summary>Quitter est refusé pendant la garde : seul le mot de passe Hoverguard la lève.</summary>
     private void Quitter()
     {
         if (garde.Etat != EtatGarde.Libre) { Journal.Info("Quitter refusé pendant la garde"); return; }
@@ -224,7 +234,7 @@ internal sealed class Hote
         {
             // Sous la garde, le menu ne propose rien d'autre : ni lever la garde, ni quitter, ni réglages. La souris
             // physique y est bloquée, et un clic d'agent (qui, lui, passe) ne doit rien pouvoir y changer.
-            menu.Items.Add(Titre("Windows Hello ou mot de passe pour lever la garde"));
+            menu.Items.Add(Titre("Mot de passe Hoverguard pour lever la garde"));
             return;
         }
 

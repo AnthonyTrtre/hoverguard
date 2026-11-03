@@ -16,7 +16,7 @@ public class SaisieTests
         Assert.Equal(GenreSaisie.Effacer, Touche(Touches.Suppr)?.Genre);
         Assert.Equal(GenreSaisie.Valider, Touche(Touches.Entree, "\r")?.Genre);
         Assert.Equal(GenreSaisie.Annuler, Touche(Touches.Echap, "\u001b")?.Genre);
-        Assert.Equal(GenreSaisie.Hello, Touche(Touches.F2)?.Genre);
+        Assert.Null(Touche(Touches.F2));  // plus de Windows Hello : F2 ne fait rien
     }
 
     [Fact]
@@ -191,5 +191,50 @@ public class ProvenanceTests
         Assert.False(Provenance.EstMaterielle(true, 0x486F7672));
         Assert.True(Provenance.EstMaterielle(true, 0xFF515700));
         Assert.True(Provenance.EstMaterielle(true, 0xFF515780));
+    }
+}
+
+public class MotDePasseHoverguardTests
+{
+    static System.Security.SecureString Texte(string t)
+    {
+        var s = new System.Security.SecureString();
+        foreach (var c in t) s.AppendChar(c);
+        return s;
+    }
+
+    [Fact]
+    public void LeBonMotDePasseLeveLaGardeEtPasUnAutre()
+    {
+        var m = MotDePasseHoverguard.Creer(Texte("drône-1234"));
+        Assert.True(m.Verifier(Texte("drône-1234")));
+        Assert.False(m.Verifier(Texte("drone-1234")));
+        Assert.False(m.Verifier(Texte("")));
+    }
+
+    [Fact]
+    public void SeuleUneEmpreinteSaleeEstEnregistree()
+    {
+        var chemin = Path.Combine(Path.GetTempPath(), $"hg-{Guid.NewGuid():N}", "motdepasse.json");
+        try
+        {
+            var a = MotDePasseHoverguard.Creer(Texte("secret42"));
+            var b = MotDePasseHoverguard.Creer(Texte("secret42"));
+            Assert.NotEqual(a.Empreinte, b.Empreinte);  // sel différent à chaque fois
+            a.Enregistrer(chemin);
+            Assert.DoesNotContain("secret42", File.ReadAllText(chemin));
+            Assert.True(MotDePasseHoverguard.Charger(chemin)!.Verifier(Texte("secret42")));
+        }
+        finally { Directory.Delete(Path.GetDirectoryName(chemin)!, true); }
+    }
+
+    [Fact]
+    public void TropCourtRefuseEtFichierAbimeIgnore()
+    {
+        Assert.Throws<ArgumentException>(() => MotDePasseHoverguard.Creer(Texte("abc")));
+        var chemin = Path.GetTempFileName();
+        File.WriteAllText(chemin, "{pas du json");
+        Assert.Null(MotDePasseHoverguard.Charger(chemin));
+        File.Delete(chemin);
     }
 }

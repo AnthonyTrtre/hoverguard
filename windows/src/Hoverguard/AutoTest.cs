@@ -19,7 +19,7 @@ namespace Hoverguard;
 /// <summary>
 /// <c>Hoverguard.exe --autotest dossier</c> : mesures sur un vrai Windows, lancées par la CI (runner windows-latest).
 /// Ne touche ni au registre ni aux réglages. Écrit <c>resultats.txt</c> et des captures PNG dans le dossier.
-/// Ce test ne remplace pas un essai à la main : les entrées physiques (vrai clavier, vraie souris), Windows Hello,
+/// Ce test ne remplace pas un essai à la main : les entrées physiques (vrai clavier, vraie souris), le mot de passe Hoverguard,
 /// la webcam et plusieurs écrans n'existent pas sur le runner.
 /// </summary>
 internal static class AutoTest
