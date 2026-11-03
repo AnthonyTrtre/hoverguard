@@ -89,6 +89,7 @@ private struct General: View {
     @AppStorage("phrase") private var phrase = ""
     @AppStorage("gardeAutoMinutes") private var gardeAuto = 15
     @AppStorage("gardeAutoSansAgent") private var gardeAutoSansAgent = true
+    @AppStorage("capotFerme") private var capotFerme = false
     @AppStorage("rapportAuRetour") private var rapportAuRetour = false
     @AppStorage("intensiteLasers") private var lasers = 0.35
     var garde: ControleurGarde?
@@ -104,6 +105,18 @@ private struct General: View {
                 }
                 Toggle("Même si aucun agent ne travaille", isOn: $gardeAutoSansAgent).disabled(gardeAuto == 0)
                 Text(gardeAutoSansAgent ? "Comme un économiseur d'écran : le Mac se garde dès que vous le laissez." : "Seulement si des agents travaillent.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Section("Capot fermé") {
+                Toggle("Rester éveillé et poser la garde quand le capot se ferme", isOn: Binding(
+                    get: { capotFerme },
+                    set: { actif in
+                        // La veille capot fermé ne s'interdit qu'en administrateur : une seule fois, mot de passe
+                        // tapé dans la fenêtre de macOS.
+                        if actif, !VeilleCapot.autorisee, !VeilleCapot.autoriser() { return }
+                        capotFerme = actif
+                    }))
+                Text("Fermer l'écran ne change rien : le Mac reste éveillé, les agents continuent, la garde se pose. Tant que l'option est active, le Mac ne se met plus en veille tout seul (l'écran, si). Elle se coupe sous le seuil de batterie de l'éveil. Capot fermé, l'écran intégré est éteint : les agents qui lisent les pages continuent, ceux qui regardent l'écran par captures ne voient rien sans écran externe. Attention à la chaleur dans un sac.")
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section("Au retour") {

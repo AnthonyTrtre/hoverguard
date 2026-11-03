@@ -421,3 +421,26 @@ import Testing
         #expect(tard.session == nil)
     }
 }
+
+@Suite struct CapotTests {
+    @Test func veilleInterditeSaufBatterieBasse() {
+        let secteur = EtatBatterie(niveau: 50, surSecteur: true), basse = EtatBatterie(niveau: 15, surSecteur: false)
+        #expect(ReglesCapot.doitEmpecherVeille(option: true, batterie: secteur, seuil: 20))
+        #expect(!ReglesCapot.doitEmpecherVeille(option: true, batterie: basse, seuil: 20))
+        #expect(!ReglesCapot.doitEmpecherVeille(option: false, batterie: secteur, seuil: 20))
+    }
+
+    @Test func gardePoseeSeulementALaFermeture() {
+        #expect(ReglesCapot.doitPoserGarde(option: true, etaitFerme: false, estFerme: true, etat: .libre))
+        #expect(!ReglesCapot.doitPoserGarde(option: true, etaitFerme: true, estFerme: true, etat: .libre))   // levée capot fermé : pas de nouvelle garde
+        #expect(!ReglesCapot.doitPoserGarde(option: false, etaitFerme: false, estFerme: true, etat: .libre))
+        #expect(!ReglesCapot.doitPoserGarde(option: true, etaitFerme: false, estFerme: true, etat: .garde))
+    }
+
+    @Test func regleSudoLimiteeADeuxCommandes() {
+        #expect(ReglesCapot.compteValide("anthonytartare"))
+        #expect(!ReglesCapot.compteValide("moi ALL=(ALL) ALL"))
+        #expect(!ReglesCapot.compteValide("a'b"))
+        #expect(ReglesCapot.regleSudo(compte: "moi") == "moi ALL=(root) NOPASSWD: /usr/bin/pmset -a disablesleep 1, /usr/bin/pmset -a disablesleep 0")
+    }
+}

@@ -26,6 +26,7 @@ struct HoverguardApp: App {
 final class Delegue: NSObject, NSApplicationDelegate, NSMenuDelegate, SPUUpdaterDelegate {
     let garde = ControleurGarde()
     let eveil = ControleurEveil()
+    let capot = ControleurCapot()
     private lazy var reglages = FenetreReglages(garde: garde)
     /// Mises à jour intégrées (Sparkle) : archives signées par Utahpik, vérifiées avant installation.
     private var miseAJour: SPUStandardUpdaterController?
@@ -44,6 +45,7 @@ final class Delegue: NSObject, NSApplicationDelegate, NSMenuDelegate, SPUUpdater
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        capot.arreter()
         if quitterDemande { eveil.desactiver() } else { eveil.suspendre() }
     }
 
@@ -76,6 +78,10 @@ final class Delegue: NSObject, NSApplicationDelegate, NSMenuDelegate, SPUUpdater
         eveil.surChangement = { [weak self] in self?.rafraichirIcone() }
         eveil.restaurer()
         garde.demarrer()
+        capot.poserGarde = { [weak self] in self?.garde.verrouiller() }
+        capot.etatGarde = { [weak self] in self?.garde.etat ?? .libre }
+        capot.seuilBatterie = { [weak self] in self?.eveil.seuilBatterie ?? 20 }
+        capot.demarrer()
         rafraichirIcone()
         proposerOuvertureALaConnexion()
         if !Filtre.autorise { Filtre.demanderAutorisation() }
