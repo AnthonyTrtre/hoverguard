@@ -215,7 +215,7 @@ internal sealed class Hote
     {
         bool gardee = garde.Etat != EtatGarde.Libre;
         icone.Icon = Icones.Notification(gardee);
-        icone.Text = IconesNotification.InfoBulle(gardee, garde.PrincipauxActifs, garde.SousAgentsActifs);
+        icone.Text = gardee ? "Hoverguard : garde posée" : "Hoverguard : écran libre";
     }
 
     private static Forms.ToolStripMenuItem Item(string texte, Action action, bool coche = false)
@@ -232,8 +232,7 @@ internal sealed class Hote
         menu.Items.Clear();
         var g = garde;
         menu.Items.Add(Titre(g.Etat == EtatGarde.Libre ? "Écran libre" : "Garde posée"));
-        menu.Items.Add(Titre(Textes.Compteur(g.PrincipauxActifs, g.SousAgentsActifs)));
-        if (ReglesDetection.LigneMenu(g.Detectes, g.Journaux.Principaux) is string ouverts) menu.Items.Add(Titre(ouverts));
+        // Plus de compteur d'agents affiché (peu fiable) : la détection sert seulement au drone et à la garde automatique.
         if (g.Agents.EnAttente().Count > 0) menu.Items.Add(Titre(Textes.StatutAgents([], g.Agents.EnAttente())));
         if (g.Etat == EtatGarde.Libre)
         {

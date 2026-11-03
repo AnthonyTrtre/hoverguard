@@ -151,16 +151,6 @@ internal sealed class FenetreReglages : Window
     private UIElement OngletAgents()
     {
         var p = Page();
-        p.Children.Add(Titre("En ce moment"));
-        p.Children.Add(new TextBlock { Text = Textes.Compteur(garde.PrincipauxActifs, garde.SousAgentsActifs) });
-        foreach (var (nom, auTravail, ouverts) in ReglesDetection.ParOutil(garde.Detectes, garde.Journaux.Principaux))
-        {
-            var ligneOutil = new DockPanel { Margin = new Thickness(0, 2, 0, 2), LastChildFill = false };
-            ligneOutil.Children.Add(new TextBlock { Text = nom, Width = 160 });
-            ligneOutil.Children.Add(new TextBlock { Text = ReglesDetection.Detail(auTravail, ouverts) });
-            p.Children.Add(ligneOutil);
-        }
-        p.Children.Add(Note("Détection automatique de tous les agents qui tournent sur ce PC (Claude Code et les conversations de l'app Claude, Codex, Gemini, Cursor, Aider, OpenCode, Goose…). Les hooks ajoutent le compte des sous-agents. Les sessions dans le cloud ne sont pas visibles d'ici."));
         p.Children.Add(Titre("Outils suivis"));
         var home = Dossiers.Utilisateur;
         foreach (var outil in BranchementAgents.Tous)

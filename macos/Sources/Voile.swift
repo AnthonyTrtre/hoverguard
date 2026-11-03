@@ -115,12 +115,16 @@ private struct VueVoile: View {
                 .font(.system(size: 32, weight: .semibold, design: .rounded))
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.white)
-            Text(etat.compteur)
-                .font(.title2.weight(.medium))
-                .foregroundStyle(etat.agentsActifs > 0 ? .cyan : .gray)
-            Text(etat.equipe)
-                .font(.title3)
-                .foregroundStyle(.white.opacity(0.7))
+            if !etat.compteur.isEmpty {
+                Text(etat.compteur)
+                    .font(.title2.weight(.medium))
+                    .foregroundStyle(etat.agentsActifs > 0 ? .cyan : .gray)
+            }
+            if !etat.equipe.isEmpty {
+                Text(etat.equipe)
+                    .font(.title3)
+                    .foregroundStyle(.white.opacity(0.7))
+            }
             if let batterie = etat.batterie {
                 Text(batterie)
                     .font(.title3.weight(.semibold))

@@ -436,8 +436,8 @@ final class ControleurGarde {
         let actifs = principauxActifs, sous = sousAgentsActifs
         voile.etat.phrase = phrase
         voile.etat.agentsActifs = actifs + sous
-        voile.etat.compteur = Textes.compteur(principaux: actifs, sousAgents: sous)
-        voile.etat.equipe = Textes.equipe(actifs + sous)
+        voile.etat.compteur = ""  // compteur d'agents retiré de l'affichage (peu fiable)
+        voile.etat.equipe = ""
         voile.etat.batterie = etat == .libre ? nil : Textes.batterie(Batterie.lire())
     }
 

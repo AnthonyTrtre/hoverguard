@@ -407,8 +407,8 @@ internal sealed class ControleurGarde
         var v = Voile.Etat;
         v.Phrase = Phrase;
         v.AgentsActifs = actifs + sous;
-        v.Compteur = Textes.Compteur(actifs, sous);
-        v.Equipe = Textes.Equipe(actifs + sous);
+        v.Compteur = "";  // compteur d'agents retiré de l'affichage (peu fiable)
+        v.Equipe = "";
         v.Batterie = Etat == EtatGarde.Libre ? null : Textes.Batterie(Batterie.Lire());
         if (voile) Voile.Actualiser();
     }

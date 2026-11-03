@@ -155,14 +155,6 @@ private struct Agents: View {
 
     var body: some View {
         Form {
-            Section("En ce moment") {
-                Text(Textes.compteur(principaux: garde.principauxActifs, sousAgents: garde.sousAgentsActifs))
-                ForEach(Dictionary(grouping: garde.detectes, by: \.nom).sorted { $0.key < $1.key }, id: \.key) { nom, liste in
-                    LabeledContent(nom, value: "\(liste.filter(\.actif).count) au travail sur \(liste.count) ouvert\(liste.count > 1 ? "s" : "")")
-                }
-                Text("Détection automatique de tous les agents qui tournent sur ce Mac (Claude Code et l'app Claude, Codex, Gemini, Cursor, Aider, OpenCode, Goose…). Les hooks ajoutent le compte des sous-agents. Les sessions dans le cloud ne sont pas visibles d'ici.")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
             Section("Outils suivis") {
                 ForEach(BranchementAgents.tous, id: \.nom) { outil in
                     let branche = (try? outil.estBranche(outil.lire())) ?? false

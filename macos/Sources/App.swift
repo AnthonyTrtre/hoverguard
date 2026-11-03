@@ -115,19 +115,15 @@ final class Delegue: NSObject, NSApplicationDelegate, NSMenuDelegate, SPUUpdater
         image?.isTemplate = true
         item.button?.image = image
         item.button?.appearsDisabled = false
-        item.button?.toolTip = garde.etat == .libre ? "Hoverguard : \(Textes.compteur(principaux: garde.principauxActifs, sousAgents: garde.sousAgentsActifs))"
-                                                    : "Hoverguard : garde posée"
+        item.button?.toolTip = garde.etat == .libre ? "Hoverguard : écran libre" : "Hoverguard : garde posée"
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
         let g = garde, e = eveil
         titre(g.etat == .libre ? "Écran libre" : "Garde posée", dans: menu)
-        titre(Textes.compteur(principaux: g.principauxActifs, sousAgents: g.sousAgentsActifs), dans: menu)
-        let parOutil = Dictionary(grouping: g.detectes, by: \.nom).mapValues { $0.filter(\.actif).count }
-            .merging(g.journaux.principaux) { max($0, $1) }
-        let ouverts = parOutil.sorted { $0.key < $1.key }.map { nom, n in "\(nom) : \(n) au travail" }
-        if !ouverts.isEmpty { titre(ouverts.joined(separator: " · "), dans: menu) }
+        // Plus de compteur d'agents affiché (peu fiable, retiré à la demande d'Anthony) : la détection sert seulement à
+        // faire voler le drone et à la garde automatique.
         if !g.agents.enAttente().isEmpty {
             titre(Textes.statutAgents(actifs: [], enAttente: g.agents.enAttente()), dans: menu)
         }
