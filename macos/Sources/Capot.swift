@@ -98,6 +98,8 @@ final class ControleurCapot {
     private var etaitFerme = Capot.estFerme
     private var veilleEmpechee: Bool?
     var poserGarde: () -> Void = {}
+    /// Capot rouvert (option active ou non) : Touch ID, coupé capot fermé, doit être réarmé.
+    var surOuverture: () -> Void = {}
     var etatGarde: () -> EtatGarde = { .libre }
     var seuilBatterie: () -> Int = { 20 }
 
@@ -139,6 +141,7 @@ final class ControleurCapot {
             Journal.app.info("Capot fermé : garde posée")
             poserGarde()
         }
+        if etaitFerme, !ferme { surOuverture() }
         etaitFerme = ferme
     }
 }

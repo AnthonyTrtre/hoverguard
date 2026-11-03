@@ -79,6 +79,11 @@ final class Delegue: NSObject, NSApplicationDelegate, NSMenuDelegate, SPUUpdater
         eveil.restaurer()
         garde.demarrer()
         capot.poserGarde = { [weak self] in self?.garde.verrouiller() }
+        capot.surOuverture = { [weak self] in self?.garde.rearmerTouchID() }
+        NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.screensDidWakeNotification, object: nil,
+                                                          queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.garde.rearmerTouchID() }
+        }
         capot.etatGarde = { [weak self] in self?.garde.etat ?? .libre }
         capot.seuilBatterie = { [weak self] in self?.eveil.seuilBatterie ?? 20 }
         capot.demarrer()

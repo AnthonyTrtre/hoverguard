@@ -26,6 +26,9 @@ final class ControleurGarde {
     private var minuteur: Timer?
     /// Touch ID armé en silence tant que la garde est posée (aussi pendant la saisie du mot de passe).
     private var contexteDiscret: LAContext?
+    private var reessaiTouchIDPrevu = false
+    /// Changement d'alimentation (branché, débranché, niveau) : le message de batterie du voile suit tout de suite.
+    private var sourceAlimentation: CFRunLoopSource?
     private var echecsDiscrets = 0
     private var echecsMotDePasse = 0
     private var phraseDuJour = Textes.phrases[0]
@@ -110,7 +113,20 @@ final class ControleurGarde {
         }
     }
 
+    private func ecouterAlimentation() {
+        guard sourceAlimentation == nil else { return }
+        let contexte = Unmanaged.passUnretained(self).toOpaque()  // contrôleur vivant tant que l'app tourne
+        guard let source = IOPSNotificationCreateRunLoopSource({ contexte in
+            guard let contexte else { return }
+            let moi = Unmanaged<ControleurGarde>.fromOpaque(contexte).takeUnretainedValue()
+            MainActor.assumeIsolated { moi.rafraichirVoile() }
+        }, contexte)?.takeRetainedValue() else { return }
+        CFRunLoopAddSource(CFRunLoopGetMain(), source, .defaultMode)
+        sourceAlimentation = source
+    }
+
     func demarrer() {
+        ecouterAlimentation()
         if gardeEnCours {
             // Plantage ou arrêt forcé pendant la garde : on ne laisse pas le Mac ouvert (audit M1).
             gardeEnCours = false
@@ -189,7 +205,16 @@ final class ControleurGarde {
         guard etat != .libre, contexteDiscret == nil else { return }
         let contexte = LAContext()
         contexte.localizedFallbackTitle = ""  // pas de bouton « mot de passe » ici : une touche suffit pour ça
-        guard contexte.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil) else { return }
+        guard contexte.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil) else {
+            // Capteur indisponible (capot fermé, clavier Touch ID débranché) : on réessaie jusqu'à son retour.
+            guard !reessaiTouchIDPrevu else { return }
+            reessaiTouchIDPrevu = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                self.reessaiTouchIDPrevu = false
+                self.armerTouchIDDiscret()
+            }
+            return
+        }
         contexteDiscret = contexte
         Task {
             let ok = (try? await contexte.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics,
@@ -201,6 +226,15 @@ final class ControleurGarde {
             let delai = min(Double(echecsDiscrets), 3)  // Touch ID toujours prêt à reprendre la main
             DispatchQueue.main.asyncAfter(deadline: .now() + delai) { self.armerTouchIDDiscret() }  // contrôleur vivant tant que l'app tourne
         }
+    }
+
+    /// Capot rouvert, écran réveillé : la demande Touch ID en cours a pu être annulée ou rester bloquée pendant que le
+    /// capteur était coupé. On la remplace par une neuve.
+    func rearmerTouchID() {
+        guard etat != .libre else { return }
+        contexteDiscret?.invalidate()
+        contexteDiscret = nil
+        armerTouchIDDiscret()
     }
 
     /// Une touche ou un clic sous la garde : le drone s'approche et demande le mot de passe (Touch ID reste armé).
@@ -304,6 +338,7 @@ final class ControleurGarde {
         }
         if etat == .authentification, Date.now.timeIntervalSince(voile.etat.derniereActivite) > 60 { annulerReveil() }
         journal?.sousAgents(sousAgentsActifs)
+        if etat != .libre { rafraichirVoile() }  // batterie à jour même si le relevé des agents tarde
         let b = Batterie.lire()
         if etat != .libre, !b.surSecteur, let n = b.niveau, n <= 20 { alerter(.batterieFaible, "Plus que \(n) % de batterie.") }
         if etat == .libre, gardeAutoMinutes > 0, totalActifs > 0 || gardeAutoSansAgent, Inactivite.secondes > Double(gardeAutoMinutes) * 60 {
