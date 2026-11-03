@@ -13,7 +13,7 @@ final class FenetreReglages {
 
     func montrer(onglet: Onglet = .general) {
         if fenetre == nil {
-            let f = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 560, height: 460),
+            let f = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 760, height: 520),
                              styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: false)
             f.title = "Réglages de Hoverguard"
             f.isReleasedWhenClosed = false
@@ -25,30 +25,70 @@ final class FenetreReglages {
         fenetre?.makeKeyAndOrderFront(nil)
     }
 
-    enum Onglet: Hashable { case general, agents, alertes, eveil, pro, aPropos }
+    enum Onglet: Hashable, CaseIterable, Identifiable {
+        case general, agents, alertes, eveil, pro, aPropos
+        var id: Self { self }
+        var titre: String {
+            switch self {
+            case .general: "Garde"
+            case .agents: "Agents"
+            case .alertes: "Alertes"
+            case .eveil: "Éveil"
+            case .pro: "Pro"
+            case .aPropos: "À propos"
+            }
+        }
+        var icone: String {
+            switch self {
+            case .general: "lock.shield"
+            case .agents: "person.3"
+            case .alertes: "bell.badge"
+            case .eveil: "bolt"
+            case .pro: "sparkles"
+            case .aPropos: "info.circle"
+            }
+        }
+    }
 }
 
 private struct VueReglages: View {
     let garde: ControleurGarde
-    @State var onglet: FenetreReglages.Onglet
+    @State var onglet: FenetreReglages.Onglet?
 
+    init(garde: ControleurGarde, onglet: FenetreReglages.Onglet) {
+        self.garde = garde
+        _onglet = State(initialValue: onglet)
+    }
+
+    // Barre latérale, comme Réglages Système : six rubriques tiennent sans menu de débordement.
     var body: some View {
-        TabView(selection: $onglet) {
-            General(garde: garde).tabItem { Label("Garde", systemImage: "lock.shield") }.tag(FenetreReglages.Onglet.general)
-            Agents(garde: garde).tabItem { Label("Agents", systemImage: "person.3") }.tag(FenetreReglages.Onglet.agents)
-            Alertes().tabItem { Label("Alertes", systemImage: "bell.badge") }.tag(FenetreReglages.Onglet.alertes)
-            Eveil().tabItem { Label("Éveil", systemImage: "bolt") }.tag(FenetreReglages.Onglet.eveil)
-            OngletPro().tabItem { Label("Pro", systemImage: "sparkles") }.tag(FenetreReglages.Onglet.pro)
-            APropos().tabItem { Label("À propos", systemImage: "info.circle") }.tag(FenetreReglages.Onglet.aPropos)
+        NavigationSplitView {
+            List(FenetreReglages.Onglet.allCases, selection: $onglet) { o in
+                Label(o.titre, systemImage: o.icone).tag(o)
+            }
+            .navigationSplitViewColumnWidth(170)
+            .toolbar(removing: .sidebarToggle)
+        } detail: {
+            Group {
+                switch onglet ?? .general {
+                case .general: General(garde: garde)
+                case .agents: Agents(garde: garde)
+                case .alertes: Alertes()
+                case .eveil: Eveil()
+                case .pro: OngletPro()
+                case .aPropos: APropos()
+                }
+            }
+            .navigationTitle((onglet ?? .general).titre)
         }
-        .padding(20)
-        .frame(width: 560, height: 460)
+        .frame(width: 760, height: 520)
     }
 }
 
 private struct General: View {
     @AppStorage("phrase") private var phrase = ""
     @AppStorage("gardeAutoMinutes") private var gardeAuto = 15
+    @AppStorage("gardeAutoSansAgent") private var gardeAutoSansAgent = true
     @AppStorage("rapportAuRetour") private var rapportAuRetour = false
     @AppStorage("intensiteLasers") private var lasers = 0.35
     var garde: ControleurGarde?
@@ -62,7 +102,9 @@ private struct General: View {
                     Text("Jamais").tag(0)
                     ForEach([5, 10, 15, 30], id: \.self) { Text("\($0) min sans activité").tag($0) }
                 }
-                Text("Seulement si des agents travaillent.").font(.caption).foregroundStyle(.secondary)
+                Toggle("Même si aucun agent ne travaille", isOn: $gardeAutoSansAgent).disabled(gardeAuto == 0)
+                Text(gardeAutoSansAgent ? "Comme un économiseur d'écran : le Mac se garde dès que vous le laissez." : "Seulement si des agents travaillent.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
             Section("Au retour") {
                 Toggle("Ouvrir le rapport de la garde au déverrouillage", isOn: $rapportAuRetour)

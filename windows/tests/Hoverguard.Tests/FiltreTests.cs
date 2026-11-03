@@ -181,6 +181,9 @@ public class SuiviEntreesTests
         Assert.True(ReglesGardeAuto.DoitPoser(EtatGarde.Libre, 15, 1, TimeSpan.FromMinutes(16)));
         Assert.False(ReglesGardeAuto.DoitPoser(EtatGarde.Libre, 15, 1, TimeSpan.FromMinutes(14)));
         Assert.False(ReglesGardeAuto.DoitPoser(EtatGarde.Libre, 15, 0, TimeSpan.FromHours(3)));
+        Assert.True(ReglesGardeAuto.DoitPoser(EtatGarde.Libre, 15, 0, TimeSpan.FromMinutes(16), memeSansAgent: true));
+        Assert.False(ReglesGardeAuto.DoitPoser(EtatGarde.Garde, 15, 0, TimeSpan.FromHours(3), memeSansAgent: true));
+        Assert.True(new Reglages().GardeAutoSansAgent);
         Assert.False(ReglesGardeAuto.DoitPoser(EtatGarde.Libre, 0, 3, TimeSpan.FromHours(3)));
         Assert.False(ReglesGardeAuto.DoitPoser(EtatGarde.Garde, 15, 1, TimeSpan.FromHours(3)));
     }

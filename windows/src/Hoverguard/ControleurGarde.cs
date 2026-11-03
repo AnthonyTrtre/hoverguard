@@ -330,7 +330,9 @@ internal sealed class ControleurGarde
         journal?.SousAgents(SousAgentsActifs);
         var b = Batterie.Lire();
         if (Etat != EtatGarde.Libre && !b.SurSecteur && b.Niveau is int n && n <= 20) Alerter(Alerte.BatterieFaible, $"Plus que {n} % de batterie.");
-        if (ReglesGardeAuto.DoitPoser(Etat, reglages.GardeAutoMinutes, TotalActifs, Filtre.InactivitePhysique))
+        // Sans mot de passe choisi, pas de garde automatique (sinon les réglages s'ouvriraient en boucle).
+        if (MotDePasseApp is not null
+            && ReglesGardeAuto.DoitPoser(Etat, reglages.GardeAutoMinutes, TotalActifs, Filtre.InactivitePhysique, reglages.GardeAutoSansAgent))
         {
             Journal.Info($"Garde posée automatiquement après {reglages.GardeAutoMinutes} min d'inactivité");
             _ = Verrouiller();

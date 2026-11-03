@@ -83,6 +83,9 @@ final class ControleurGarde {
         set { reglages.set(newValue.trimmingCharacters(in: .whitespaces), forKey: "destinataire") }
     }
 
+    /// Poser la garde tout seule même sans agent au travail (comme un économiseur d'écran). Activé par défaut.
+    var gardeAutoSansAgent: Bool { reglages.object(forKey: "gardeAutoSansAgent") as? Bool ?? true }
+
     /// Poser la garde tout seul après N minutes sans toucher au Mac, si des agents travaillent (0 = jamais).
     var gardeAutoMinutes: Int {
         get { reglages.object(forKey: "gardeAutoMinutes") as? Int ?? 15 }
@@ -303,7 +306,7 @@ final class ControleurGarde {
         journal?.sousAgents(sousAgentsActifs)
         let b = Batterie.lire()
         if etat != .libre, !b.surSecteur, let n = b.niveau, n <= 20 { alerter(.batterieFaible, "Plus que \(n) % de batterie.") }
-        if etat == .libre, gardeAutoMinutes > 0, totalActifs > 0, Inactivite.secondes > Double(gardeAutoMinutes) * 60 {
+        if etat == .libre, gardeAutoMinutes > 0, totalActifs > 0 || gardeAutoSansAgent, Inactivite.secondes > Double(gardeAutoMinutes) * 60 {
             Journal.app.info("Garde posée automatiquement après \(self.gardeAutoMinutes) min d'inactivité")
             verrouiller()
         }

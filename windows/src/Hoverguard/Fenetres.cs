@@ -129,7 +129,8 @@ internal sealed class FenetreReglages : Window
         p.Children.Add(new TextBlock { Text = "Toute seule après :", Margin = new Thickness(0, 10, 0, 4) });
         p.Children.Add(Choix(Reglages.ChoixGardeAuto, reglages.GardeAutoMinutes, m => m == 0 ? "Jamais" : $"{m} min sans activité",
             m => { reglages.GardeAutoMinutes = m; enregistrer(); }));
-        p.Children.Add(Note("Seulement si des agents travaillent. Seuls le vrai clavier et la vraie souris comptent : l'activité des agents ne retarde pas la garde."));
+        p.Children.Add(Case("Même si aucun agent ne travaille", reglages.GardeAutoSansAgent, v => { reglages.GardeAutoSansAgent = v; enregistrer(); }));
+        p.Children.Add(Note("Activée, la garde se pose comme un économiseur d'écran dès que vous laissez le PC. Seuls le vrai clavier et la vraie souris comptent : l'activité des agents ne retarde pas la garde."));
         p.Children.Add(Titre("Voile"));
         var phrase = new TextBox { Text = reglages.Phrase, MaxLength = 200 };
         phrase.LostFocus += (_, _) => { reglages.Phrase = phrase.Text.Trim(); enregistrer(); garde.PhraseChangee(); };

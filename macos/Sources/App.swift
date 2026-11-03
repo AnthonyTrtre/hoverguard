@@ -50,6 +50,10 @@ final class Delegue: NSObject, NSApplicationDelegate, NSMenuDelegate, SPUUpdater
         guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
         Pro.accorderProLancementSiEdition()
         miseAJour = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: self, userDriverDelegate: nil)
+        #if DEBUG
+        // Vérification visuelle : `HOVERGUARD_REGLAGES=1` ouvre les réglages au lancement.
+        if ProcessInfo.processInfo.environment["HOVERGUARD_REGLAGES"] != nil { reglages.montrer() }
+        #endif
         NotificationCenter.default.addObserver(forName: .rechercherMisesAJour, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.miseAJour?.checkForUpdates(nil) }
         }

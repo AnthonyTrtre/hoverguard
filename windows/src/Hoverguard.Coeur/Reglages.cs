@@ -20,6 +20,9 @@ public sealed class Reglages
 
     /// <summary>Ouvrir le rapport de la garde tout seul au déverrouillage. Désactivé par défaut, comme sur macOS : le
     /// rapport attend dans le menu (« Rapport de la dernière garde… »). Même clé que la version macOS.</summary>
+    /// <summary>Garde automatique même sans agent au travail (même clé que la version macOS). Activée par défaut.</summary>
+    [JsonPropertyName("gardeAutoSansAgent")] public bool GardeAutoSansAgent { get; set; } = true;
+
     [JsonPropertyName("rapportAuRetour")] public bool RapportAuRetour { get; set; }
 
     [JsonPropertyName("ecranAllume")] public bool EcranAllume { get; set; }
@@ -89,6 +92,7 @@ public sealed class Reglages
 /// empêcherait toute garde automatique).</summary>
 public static class ReglesGardeAuto
 {
-    public static bool DoitPoser(EtatGarde etat, int minutes, int agentsActifs, TimeSpan inactivitePhysique)
-        => etat == EtatGarde.Libre && minutes > 0 && agentsActifs > 0 && inactivitePhysique > TimeSpan.FromMinutes(minutes);
+    /// <param name="memeSansAgent">Poser aussi quand aucun agent ne travaille (comme un économiseur d'écran).</param>
+    public static bool DoitPoser(EtatGarde etat, int minutes, int agentsActifs, TimeSpan inactivitePhysique, bool memeSansAgent = false)
+        => etat == EtatGarde.Libre && minutes > 0 && (agentsActifs > 0 || memeSansAgent) && inactivitePhysique > TimeSpan.FromMinutes(minutes);
 }
