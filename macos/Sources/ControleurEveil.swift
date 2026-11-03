@@ -48,6 +48,7 @@ final class ControleurEveil {
         assertion = nouvelle
         session = existante ?? Session(duree: duree)
         if existante == nil { dureeParDefaut = duree }
+        memoriser(session)
         minuteur?.invalidate()
         minuteur = Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.verifier() }
@@ -58,12 +59,35 @@ final class ControleurEveil {
     }
 
     func desactiver() {
+        suspendre()
+        if session != nil { Journal.app.info("Éveil arrêté") }
+        session = nil
+        memoriser(nil)
+        surChangement()
+    }
+
+    /// Sortie de l'app sans que l'utilisateur ait arrêté l'éveil (mise à jour, extinction) : l'assertion est rendue,
+    /// mais la session reste mémorisée et reprend au prochain lancement.
+    func suspendre() {
         minuteur?.invalidate()
         minuteur = nil
         assertion = nil
-        if session != nil { Journal.app.info("Éveil arrêté") }
-        session = nil
-        surChangement()
+    }
+
+    /// Au lancement : reprend la session mémorisée si elle n'est pas finie (« Jusqu'à l'arrêt » ne se décoche plus
+    /// tout seul après une mise à jour).
+    func restaurer(maintenant: Date = .now) {
+        guard reglages.bool(forKey: "eveilActif"),
+              let duree = Duree(rawValue: reglages.integer(forKey: "eveilDuree")) else { return }
+        let memorisee = Session(duree: duree, fin: reglages.object(forKey: "eveilFin") as? Date)
+        if memorisee.estExpiree(a: maintenant) { return memoriser(nil) }
+        activer(duree, depuis: memorisee)
+    }
+
+    private func memoriser(_ s: Session?) {
+        reglages.set(s != nil, forKey: "eveilActif")
+        reglages.set(s?.duree.rawValue ?? 0, forKey: "eveilDuree")
+        if let fin = s?.fin { reglages.set(fin, forKey: "eveilFin") } else { reglages.removeObject(forKey: "eveilFin") }
     }
 
     /// Fin de durée ou batterie trop basse : on rend la main à la veille normale.

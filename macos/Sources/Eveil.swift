@@ -30,6 +30,12 @@ struct Session: Equatable, Sendable {
         fin = duree.secondes.map { debut.addingTimeInterval($0) }
     }
 
+    /// Session retrouvée après une relance de l'app (mise à jour, redémarrage).
+    init(duree: Duree, fin: Date?) {
+        self.duree = duree
+        self.fin = fin
+    }
+
     /// Temps restant, `nil` pour une session sans fin.
     func restant(a maintenant: Date) -> TimeInterval? {
         fin.map { max(0, $0.timeIntervalSince(maintenant)) }

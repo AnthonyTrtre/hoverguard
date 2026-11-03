@@ -67,6 +67,7 @@ internal sealed class Hote
     private readonly Forms.NotifyIcon icone = new() { Text = "Hoverguard" };
     private readonly Forms.ContextMenuStrip menu = new() { ShowCheckMargin = true, ShowImageMargin = false };
     private FenetreReglages? fenetreReglages;
+    private bool quitterDemande;
     private readonly MisesAJour misesAJour = new();
     // Première recherche 2 minutes après le lancement, puis un passage toutes les 30 minutes (recherche au plus 1 fois
     // par jour ; le reste du temps, on regarde seulement si une mise à jour prête peut s'installer).
@@ -108,6 +109,7 @@ internal sealed class Hote
         garde.SurChangement = RafraichirIcone;
         garde.MotDePasseManquant = DemanderMotDePasse;
         eveil.SurChangement = RafraichirIcone;
+        eveil.Restaurer();
         garde.Demarrer();
         // Mode Windows clair ou sombre changé : l'icône de notification suit la couleur de la barre des tâches.
         SystemEvents.UserPreferenceChanged += ThemeChange;
@@ -179,6 +181,7 @@ internal sealed class Hote
     private void Quitter()
     {
         if (garde.Etat != EtatGarde.Libre) { Journal.Info("Quitter refusé pendant la garde"); return; }
+        quitterDemande = true;
         misesAJour.InstallerALaSortie();
         app.Shutdown();
     }
@@ -186,7 +189,8 @@ internal sealed class Hote
     public void Arreter()
     {
         SystemEvents.UserPreferenceChanged -= ThemeChange;
-        eveil.Desactiver();
+        // « Quitter Hoverguard » arrête vraiment l'éveil ; une mise à jour ou l'extinction le laisse reprendre.
+        if (quitterDemande) eveil.Desactiver(); else eveil.Suspendre();
         garde.Deverrouiller();
         garde.Filtre.Dispose();
         icone.Visible = false;

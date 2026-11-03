@@ -32,6 +32,11 @@ public sealed class Reglages
 
     [JsonPropertyName("dureeParDefaut")] public Duree DureeParDefaut { get; set; } = Duree.Indefinie;
 
+    /// <summary>Éveil en cours, mémorisé pour reprendre après une relance de l'app (mise à jour, redémarrage).</summary>
+    [JsonPropertyName("eveilActif")] public bool EveilActif { get; set; }
+    [JsonPropertyName("eveilDuree")] public Duree EveilDuree { get; set; } = Duree.Indefinie;
+    [JsonPropertyName("eveilFin")] public DateTime? EveilFinUtc { get; set; }
+
     /// <summary>Notifications sur le téléphone : emplacement réservé, toujours désactivé sous Windows (pas d'iMessage).
     /// TODO : brancher un canal local respectant « aucune connexion réseau » (par ex. l'app « Lien avec Windows »).</summary>
     [JsonPropertyName("notifications")] public bool Notifications { get; set; }

@@ -387,3 +387,37 @@ import Testing
         #expect(JournauxAgents.relever(maison: vide) == ReleveJournaux())
     }
 }
+
+@MainActor @Suite struct EveilMemoriseTests {
+    private func reglages() -> UserDefaults {
+        let nom = "hg-eveil-\(UUID().uuidString)"
+        return UserDefaults(suiteName: nom)!
+    }
+
+    @Test func jusquALArretReprendApresUneRelance() {
+        let r = reglages()
+        let avant = ControleurEveil(reglages: r)
+        avant.activer(.indefinie)
+        avant.suspendre()  // l'app quitte pour une mise à jour
+        let apres = ControleurEveil(reglages: r)
+        apres.restaurer()
+        #expect(apres.session?.duree == .indefinie)
+        apres.desactiver()
+    }
+
+    @Test func arretVolontaireEtSessionFinieNeReprennentPas() {
+        let r = reglages()
+        let c = ControleurEveil(reglages: r)
+        c.activer(.uneHeure)
+        c.desactiver()
+        let apres = ControleurEveil(reglages: r)
+        apres.restaurer()
+        #expect(apres.session == nil)
+
+        c.activer(.quinzeMinutes)
+        c.suspendre()
+        let tard = ControleurEveil(reglages: r)
+        tard.restaurer(maintenant: .now.addingTimeInterval(3_600))
+        #expect(tard.session == nil)
+    }
+}

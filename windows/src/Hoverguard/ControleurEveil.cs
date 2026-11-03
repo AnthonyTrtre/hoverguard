@@ -41,9 +41,15 @@ internal sealed class ControleurEveil
 
     public void Activer(Duree duree)
     {
-        Session = SessionEveil.Commencer(duree, DateTime.UtcNow);
+        Demarrer(SessionEveil.Commencer(duree, DateTime.UtcNow));
+    }
+
+    private void Demarrer(SessionEveil session)
+    {
+        var duree = session.Duree;
+        Session = session;
         reglages.DureeParDefaut = duree;
-        enregistrer();
+        Memoriser(session);
         Alimentation.Eveil(true, EcranAllume);
         minuteur.Start();
         Journal.Info($"Éveil activé : {duree.Libelle()}");
@@ -52,11 +58,36 @@ internal sealed class ControleurEveil
 
     public void Desactiver()
     {
-        minuteur.Stop();
-        Alimentation.Eveil(false, false);
+        Suspendre();
         if (Session is not null) Journal.Info("Éveil arrêté");
         Session = null;
+        Memoriser(null);
         SurChangement();
+    }
+
+    /// <summary>Sortie de l'app sans que l'utilisateur ait arrêté l'éveil (mise à jour, extinction) : le PC peut se
+    /// mettre en veille, mais la session reste mémorisée et reprend au prochain lancement.</summary>
+    public void Suspendre()
+    {
+        minuteur.Stop();
+        Alimentation.Eveil(false, false);
+    }
+
+    /// <summary>Au lancement : reprend la session mémorisée si elle n'est pas finie.</summary>
+    public void Restaurer()
+    {
+        if (!reglages.EveilActif) return;
+        var memorisee = new SessionEveil(reglages.EveilDuree, reglages.EveilFinUtc);
+        if (memorisee.EstExpiree(DateTime.UtcNow)) { Memoriser(null); return; }
+        Demarrer(memorisee);
+    }
+
+    private void Memoriser(SessionEveil? s)
+    {
+        reglages.EveilActif = s is not null;
+        reglages.EveilDuree = s?.Duree ?? Duree.Indefinie;
+        reglages.EveilFinUtc = s?.Fin;
+        enregistrer();
     }
 
     /// <summary>Fin de durée ou batterie trop basse : on rend la main à la veille normale.</summary>

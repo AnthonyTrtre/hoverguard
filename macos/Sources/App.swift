@@ -36,13 +36,15 @@ final class Delegue: NSObject, NSApplicationDelegate, NSMenuDelegate, SPUUpdater
 
     /// Quitter pendant la garde est refusé, sauf à l'extinction ou à la fermeture de session (audit C1).
     private var extinction = false
+    /// « Quitter Hoverguard » choisi dans le menu : l'éveil s'arrête vraiment (sinon il reprend au prochain lancement).
+    private var quitterDemande = false
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         extinction || garde.etat == .libre ? .terminateNow : .terminateCancel
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        eveil.desactiver()
+        if quitterDemande { eveil.desactiver() } else { eveil.suspendre() }
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -72,6 +74,7 @@ final class Delegue: NSObject, NSApplicationDelegate, NSMenuDelegate, SPUUpdater
             }
         }
         eveil.surChangement = { [weak self] in self?.rafraichirIcone() }
+        eveil.restaurer()
         garde.demarrer()
         rafraichirIcone()
         proposerOuvertureALaConnexion()
@@ -145,7 +148,11 @@ final class Delegue: NSObject, NSApplicationDelegate, NSMenuDelegate, SPUUpdater
         menu.addItem(ItemAction("Réglages…", touche: ",") { [weak self] in self?.reglages.montrer() })
         menu.addItem(ItemAction("À propos de Hoverguard") { [weak self] in self?.reglages.montrer(onglet: .aPropos) })
         menu.addItem(.separator())
-        menu.addItem(ItemAction("Quitter Hoverguard", touche: "q") { NSApp.terminate(nil) })
+        menu.addItem(ItemAction("Quitter Hoverguard", touche: "q") { [weak self] in
+            self?.quitterDemande = true
+            NSApp.terminate(nil)
+            self?.quitterDemande = false  // sortie refusée (garde posée)
+        })
     }
 
     /// Au premier lancement, on demande avant d'inscrire Hoverguard au démarrage (audit B6).
