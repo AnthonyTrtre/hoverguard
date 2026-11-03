@@ -1,5 +1,6 @@
-# Publication d'une version : à chaque étiquette « v… » (ex. v1.0.0), l'exe Windows est compilé, testé et joint à une
-# Release GitHub (installateur Velopack + paquets de mise à jour ; brouillon, publiée à la main par Utahpik). Le DMG Mac est ajouté depuis le Mac d'Utahpik
+# Publication d'une version : à chaque étiquette « v… » (ex. v1.0.0), Windows est compilé, testé, empaqueté par
+# Velopack (installateur + paquets de mise à jour) et joint à une Release GitHub (brouillon, publiée à la main par
+# Utahpik). Le DMG Mac est ajouté depuis le Mac d'Utahpik
 # (macos/Scripts/publier-mac.sh, signé avec le certificat Utahpik, qui ne quitte pas son Trousseau), avec l'archive de
 # mise à jour et le flux lus par les apps installées (releases/latest/download/appcast.xml) :
 #   gh release upload v1.0.0 Hoverguard-1.0.0.dmg Hoverguard-1.0.0.dmg.sha256 Hoverguard-1.0.0.zip appcast.xml

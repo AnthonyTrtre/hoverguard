@@ -10,14 +10,25 @@ Hoverguard vit dans la zone de notification, près de l'horloge : un clic gauche
 
 ## Installer
 
-### Télécharger l'exe
-Chaque compilation de la CI (onglet *Actions* du dépôt, flux « Windows ») produit l'artefact **Hoverguard-windows-x64** :
-un seul fichier `Hoverguard.exe`, autonome (le moteur .NET est inclus). Rangez-le où vous voulez, par exemple
-`%LOCALAPPDATA%\Programs\Hoverguard\`, puis lancez-le. Aucun droit d'administrateur n'est demandé.
+### Installer
+Téléchargez `Hoverguard-Setup.exe` dans les [Releases](https://github.com/AnthonyTrtre/hoverguard/releases/latest) et
+lancez-le. L'installateur ([Velopack](https://velopack.io), MIT) installe Hoverguard pour votre compte dans
+`%LOCALAPPDATA%\Hoverguard` (aucun droit d'administrateur : c'est aussi ce qui permet des mises à jour silencieuses),
+ajoute un raccourci au menu Démarrer et ouvre l'app. Le fichier téléchargé peut ensuite être supprimé. Désinstaller :
+Paramètres › Applications › Applications installées › Hoverguard (le schéma `hoverguard://` et l'ouverture au
+démarrage sont retirés).
 
-**Avertissement SmartScreen.** L'exe n'est pas signé (pas encore de certificat de signature de code). Au premier
-lancement, Windows affiche « Windows a protégé votre ordinateur » : cliquez sur *Informations complémentaires*, puis
-*Exécuter quand même*. Si vous préférez, compilez-le vous-même (ci-dessous) : c'est le même code.
+Hoverguard n'a pas de fenêtre principale : il vit dans la zone de notification, près de l'horloge. Windows 11 range
+les nouvelles icônes sous la flèche **^** ; pour la garder visible, faites-la glisser dans la barre des tâches. Relancer
+Hoverguard (menu Démarrer, double-clic) ouvre ses réglages.
+
+**Mises à jour.** Une fois par jour, Hoverguard lit la dernière Release GitHub, télécharge la nouvelle version en
+arrière-plan et l'installe quand le PC est inutilisé depuis 10 minutes ou quand vous le quittez, jamais pendant une
+garde. Désactivable dans Réglages › Garde ; menu de l'icône › *Rechercher des mises à jour…* pour le faire tout de suite.
+
+**Avertissement SmartScreen.** L'installateur n'est pas signé (pas encore de certificat de signature de code). Edge
+peut demander de *Conserver* le fichier, puis Windows affiche « Windows a protégé votre ordinateur » : cliquez sur
+*Informations complémentaires*, puis *Exécuter quand même*. Si vous préférez, compilez-le vous-même (ci-dessous).
 
 ### Compiler depuis les sources
 Il faut le SDK .NET 8.
@@ -211,7 +222,8 @@ développement : servez `src/Hoverguard/Web/` en HTTP local et ouvrez `drone.htm
 | Cache du moteur WebView2 | `%LOCALAPPDATA%\Utahpik\Hoverguard\WebView2\` |
 | Schéma d'URL, ouverture au démarrage | `HKCU\Software\Classes\hoverguard`, `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` |
 
-Aucune télémétrie, aucune connexion réseau. Les services d'arrière-plan du moteur WebView2 (mises à jour de
+Aucune télémétrie. Seule connexion réseau : la recherche quotidienne de mises à jour dans les Releases GitHub
+(désactivable). Les services d'arrière-plan du moteur WebView2 (mises à jour de
 composants, rapports…) sont coupés par des options de lancement.
 
 ## Limites connues

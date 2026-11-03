@@ -51,9 +51,9 @@ commandes n'utilisent que des chemins absolus et ne transmettent que l'état et 
 session. « Débrancher » retire tout ce que Hoverguard a ajouté.
 
 ## Données et réseau
-- Aucune télémétrie. Seule connexion réseau (Mac) : une fois par jour, la lecture de
-  `github.com/AnthonyTrtre/hoverguard/releases/latest/download/appcast.xml` pour les mises à jour ; aucun identifiant ni
-  donnée n'est envoyé. Désactivable dans Réglages › Garde.
+- Aucune télémétrie. Seule connexion réseau : une fois par jour, la recherche de mises à jour dans les Releases GitHub
+  de ce dépôt (Mac : `releases/latest/download/appcast.xml` ; Windows : `releases.win.json` via l'API GitHub) ; aucun
+  identifiant ni donnée n'est envoyé. Désactivable dans Réglages › Garde.
 - Photos d'intrus (option **désactivée par défaut** ; photographier quelqu'un peut être encadré par la loi) : caméra
   intégrée uniquement, dossier `~/Library/Application Support/com.utahpik.hoverguard/intrus` (droits 700/600),
   effacées après 30 jours.
@@ -112,7 +112,11 @@ Même modèle de menace et mêmes choix que sur macOS ; ce qui change :
   pavé tactile traités par le système (bureaux virtuels…) et le clavier tactile (entrées injectées) passent.
 - **Windows Hello par code PIN** : impossible sous la garde, puisque le clavier physique n'atteint aucune fenêtre ;
   le visage et l'empreinte marchent, sinon le mot de passe.
-- **Exe non signé** : Windows SmartScreen avertit au premier lancement. Compilez depuis les sources si vous préférez.
+- **Installateur non signé** : Edge et Windows SmartScreen avertissent au téléchargement et au premier lancement.
+  Compilez depuis les sources si vous préférez.
+- **Mises à jour (Windows)** : [Velopack](https://github.com/velopack/velopack) 1.2.161 (MIT), version épinglée. Les
+  paquets viennent des Releases GitHub en HTTPS et sont vérifiés par leur somme SHA-256 publiée avec la Release ; ils
+  ne sont pas signés à part (contrairement au Mac). Installation jamais pendant une garde.
 
 ### Autorisations demandées (Windows)
 | Autorisation | Pourquoi | Si refusée |

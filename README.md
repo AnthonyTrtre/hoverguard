@@ -56,7 +56,9 @@ cd macos && make installer
 ```
 
 ### Windows 10 (version 2004 ou plus récent) / 11
-Téléchargez `Hoverguard.exe` dans les [Releases](../../releases) : un seul fichier, autonome. Raccourci
+Téléchargez `Hoverguard-Setup.exe` dans les [Releases](../../releases) et lancez-le : Hoverguard s'installe pour
+votre compte (sans droits d'administrateur), avec un raccourci dans le menu Démarrer, puis s'ouvre. Le fichier
+téléchargé peut ensuite être supprimé. Son icône est près de l'horloge (sous la flèche ^). Raccourci
 **Ctrl + Win + W** ; Windows Hello ou le mot de passe de la session pour lever la garde. Installation, raccourcis et
 limites : [windows/README.md](windows/README.md).
 
@@ -66,7 +68,11 @@ copie de sauvegarde de leur fichier de réglages est faite). Chaque outil prévi
 `hoverguard://agent?nom=…&etat=travail|attente|fini`. Rien ne sort de votre ordinateur.
 
 ## Mises à jour
-Hoverguard pour Mac se met à jour tout seul : une fois par jour, il regarde la dernière Release de ce dépôt
+**Windows** : une fois par jour, Hoverguard regarde la dernière Release de ce dépôt ([Velopack](https://velopack.io)),
+télécharge la nouvelle version en arrière-plan et l'installe quand le PC est inutilisé depuis 10 minutes ou quand vous
+le quittez, jamais pendant une garde. Réglages › Garde permet de couper les mises à jour automatiques.
+
+**Mac** : Hoverguard se met à jour tout seul : une fois par jour, il regarde la dernière Release de ce dépôt
 (`appcast.xml`), télécharge la nouvelle version en arrière-plan et l'installe quand vous le quittez, jamais pendant une
 garde. Chaque archive est signée par Utahpik (EdDSA, [Sparkle](https://sparkle-project.org)) : une archive modifiée est
 refusée. La signature de l'app ne change pas d'une version à l'autre, donc l'autorisation Accessibilité est gardée.
