@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Hoverguard</title>
+<!-- Tout est embarqué dans Hoverguard.exe et servi localement : aucune requête réseau (voir Voile.cs). -->
+<script type="importmap">{ "imports": { "three": "./three/three.module.min.js" } }</script>
+<style>
+  :root { --cyan: #14ccff; --orange: #ff9a2e; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #000; cursor: none;
+    font-family: "Segoe UI Variable Display", "Segoe UI", "Segoe UI Emoji", system-ui, sans-serif;
+    -webkit-user-select: none; user-select: none; }
+  canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+  #textes { position: fixed; left: 0; right: 0; bottom: 76px; display: flex; flex-direction: column;
+    align-items: center; gap: 12px; padding: 0 40px; text-align: center; color: #fff;
+    transition: opacity .5s ease, transform .5s ease; }
+  #textes.cache { opacity: 0; transform: translateY(14px); }
+  #phrase { font-size: 32px; font-weight: 600; max-width: 1100px; text-shadow: 0 2px 18px #000; }
+  #compteur { font-size: 22px; font-weight: 500; color: #8a8f96; }
+  #compteur.actif { color: var(--cyan); }
+  #equipe { font-size: 18px; color: rgba(255,255,255,.7); }
+  #batterie { font-size: 18px; font-weight: 600; color: var(--orange); background: rgba(255,154,46,.15);
+    padding: 8px 18px; border-radius: 999px; }
+  #batterie:empty { display: none; }
+  #heure { font-size: 54px; font-weight: 200; color: rgba(255,255,255,.8); font-variant-numeric: tabular-nums; }
+  #aide { position: fixed; left: 0; right: 0; bottom: 36px; text-align: center; font-size: 15px;
+    color: rgba(255,255,255,.45); }
+  /* Bandeau d'identification : balaie l'écran pendant l'approche du drone. */
+  #balayage { position: fixed; left: 0; right: 0; height: 90px; top: -100px; pointer-events: none; opacity: 0;
+    background: linear-gradient(to bottom, transparent, rgba(255,154,46,.05) 45%, rgba(255,170,70,.55) 50%,
+      rgba(255,154,46,.05) 55%, transparent); }
+  body.approche #balayage { opacity: 1; animation: balayer 3.4s cubic-bezier(.45,0,.55,1) .8s infinite; }
+  @keyframes balayer { from { top: -100px; } to { top: 100vh; } }
+  @media (max-height: 800px) { #phrase { font-size: 26px; } #heure { font-size: 42px; } #textes { bottom: 64px; } }
+</style>
+</head>
+<body>
+<div id="balayage"></div>
+<div id="textes" class="cache">
+  <div id="phrase"></div>
+  <div id="compteur"></div>
+  <div id="equipe"></div>
+  <div id="batterie"></div>
+  <div id="heure"></div>
+</div>
+<div id="aide">Appuyez sur une touche pour vous identifier</div>
+<script type="module" src="./drone.js"></script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+# Publication d'une version : à chaque étiquette « v… » (ex. v1.0.0), l'exe Windows est compilé, testé et joint à une
+# Release GitHub (brouillon, publiée à la main par Utahpik). Le DMG Mac est ajouté depuis le Mac d'Utahpik
+# (macos/Scripts/publier-mac.sh, signé avec le certificat Utahpik, qui ne quitte pas son Trousseau), avec l'archive de
+# mise à jour et le flux lus par les apps installées (releases/latest/download/appcast.xml) :
+#   gh release upload v1.0.0 Hoverguard-1.0.0.dmg Hoverguard-1.0.0.dmg.sha256 Hoverguard-1.0.0.zip appcast.xml
+name: Publication
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Tests
+        run: dotnet test windows/tests/Hoverguard.Tests -c Release
+      - name: "Exe autonome (édition de lancement : Pro offert aux 1 000 premiers)"
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart("v")
+          dotnet publish windows/src/Hoverguard/Hoverguard.csproj -c Release -r win-x64 --self-contained `
+            -p:PublishSingleFile=true -p:Version=$version -p:EditionLancement=true -o publication
+          Rename-Item publication/Hoverguard.exe "Hoverguard-$version-windows-x64.exe"
+          Get-FileHash "publication/Hoverguard-$version-windows-x64.exe" -Algorithm SHA256 |
+            ForEach-Object { "$($_.Hash.ToLower())  Hoverguard-$version-windows-x64.exe" } |
+            Out-File -Encoding ascii "publication/Hoverguard-$version-windows-x64.exe.sha256"
+      - name: Release (brouillon)
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          name: Hoverguard ${{ github.ref_name }}
+          files: |
+            publication/*.exe
+            publication/*.sha256
+          body: |
+            ## Installer
+            **Mac (macOS 26+)** : téléchargez le `.dmg`, glissez Hoverguard dans Applications. Au premier lancement,
+            Réglages Système › Confidentialité et sécurité › **Ouvrir quand même**, puis autorisez Hoverguard dans
+            **Accessibilité** (une seule fois : les mises à jour gardent l'autorisation).
+
+            **Windows 10/11** : téléchargez l'`.exe` et lancez-le. SmartScreen peut afficher « Windows a protégé votre
+            ordinateur » : *Informations complémentaires* › *Exécuter quand même* (l'exe n'est pas signé).
+
+            **Mises à jour (Mac)** : automatiques à partir de cette version, signées par Utahpik, jamais pendant une garde.
+
+            **Vérifier un téléchargement** : comparez la somme SHA-256 du fichier avec le `.sha256` publié.
+
+            🎁 Cette version est l'**édition de lancement** : Hoverguard Pro est offert à vie (Fondateurs).

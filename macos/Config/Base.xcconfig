@@ -1,0 +1,12 @@
+// Réglages communs. Par défaut l'app est signée « ad hoc » (signature locale) : elle tourne sur le Mac qui la
+// compile. Pour signer avec ton équipe Apple, crée Config/Signing.local.xcconfig (ignoré par git) contenant :
+//   DEVELOPMENT_TEAM = ABCDE12345
+//   CODE_SIGN_IDENTITY = Apple Development
+CODE_SIGN_IDENTITY = -
+CODE_SIGN_STYLE = Manual
+DEVELOPMENT_TEAM =
+#include? "Signing.local.xcconfig"
+
+// Édition de lancement (Pro offert aux 1 000 premiers) : décommenter pour compiler la première version publiée,
+// recommenter quand le compteur de téléchargements atteint 1 000.
+// SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) EDITION_LANCEMENT

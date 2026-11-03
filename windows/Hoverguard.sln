@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{18EDE3FC-E56A-406F-AEC7-C818C126C5F2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hoverguard.Coeur", "src\Hoverguard.Coeur\Hoverguard.Coeur.csproj", "{D0BBCD9F-0684-4CF5-AE15-088156DC8BA5}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{2AE30365-39C0-4501-B8F3-A20AA987FE4C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hoverguard.Tests", "tests\Hoverguard.Tests\Hoverguard.Tests.csproj", "{712117B8-D484-4499-B805-B75655CBE750}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D0BBCD9F-0684-4CF5-AE15-088156DC8BA5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D0BBCD9F-0684-4CF5-AE15-088156DC8BA5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D0BBCD9F-0684-4CF5-AE15-088156DC8BA5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D0BBCD9F-0684-4CF5-AE15-088156DC8BA5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{712117B8-D484-4499-B805-B75655CBE750}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{712117B8-D484-4499-B805-B75655CBE750}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{712117B8-D484-4499-B805-B75655CBE750}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{712117B8-D484-4499-B805-B75655CBE750}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{D0BBCD9F-0684-4CF5-AE15-088156DC8BA5} = {18EDE3FC-E56A-406F-AEC7-C818C126C5F2}
+		{712117B8-D484-4499-B805-B75655CBE750} = {2AE30365-39C0-4501-B8F3-A20AA987FE4C}
+	EndGlobalSection
+EndGlobal

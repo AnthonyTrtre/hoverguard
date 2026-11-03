@@ -1,0 +1,9 @@
+*.xcodeproj
+Info.plist
+*.entitlements
+.build/
+DerivedData/
+build/
+.DS_Store
+*.profraw
+Config/Signing.local.xcconfig

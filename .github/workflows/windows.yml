@@ -1,0 +1,71 @@
+name: Windows
+
+on:
+  push:
+    paths: ["windows/**", ".github/workflows/windows.yml"]
+  pull_request:
+    paths: ["windows/**", ".github/workflows/windows.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  logique:
+    name: Logique pure (Linux)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: windows
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Tests de la logique pure
+        run: dotnet test tests/Hoverguard.Tests -c Release
+
+  windows:
+    name: Compilation, tests et exe (Windows)
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: windows
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Restauration
+        run: dotnet restore
+      - name: Compilation (Release)
+        run: dotnet build -c Release --no-restore
+      - name: Tests (dont l'exécution réelle des hooks PowerShell)
+        run: dotnet test tests/Hoverguard.Tests -c Release --no-build --logger "console;verbosity=normal"
+      - name: Exe autonome en un seul fichier
+        run: dotnet publish src/Hoverguard/Hoverguard.csproj -c Release -r win-x64 -o publication
+      - name: Test automatique sur le bureau du runner (voile, captures, clics, occlusion d'Edge)
+        # Mesures sur un vrai Windows, mais sans vrai clavier, souris, webcam ni Windows Hello : informatif.
+        continue-on-error: true
+        timeout-minutes: 10
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath publication\Hoverguard.exe -ArgumentList '--autotest','autotest' -PassThru -Wait
+          if (Test-Path autotest\resultats.txt) { Get-Content autotest\resultats.txt } else { Write-Host "Aucun résultat écrit." }
+          exit $p.ExitCode
+      - name: Exe pour téléchargement
+        uses: actions/upload-artifact@v4
+        with:
+          name: Hoverguard-windows-x64
+          path: |
+            windows/publication/Hoverguard.exe
+          if-no-files-found: error
+      - name: Captures et mesures du test automatique
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: autotest
+          path: |
+            windows/autotest/*.png
+            windows/autotest/resultats.txt
+          if-no-files-found: ignore

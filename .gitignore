@@ -1,0 +1,9 @@
+.DS_Store
+*.profraw
+# Windows (.NET)
+windows/**/bin/
+windows/**/obj/
+windows/publication/
+windows/autotest/
+*.user
+.vs/

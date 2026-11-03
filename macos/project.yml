@@ -1,0 +1,78 @@
+name: Hoverguard
+options:
+  bundleIdPrefix: com.utahpik
+  deploymentTarget: { macOS: "26.0" }
+configFiles:
+  Debug: Config/Base.xcconfig
+  Release: Config/Base.xcconfig
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    ENABLE_HARDENED_RUNTIME: YES
+packages:
+  Socle:
+    path: Socle
+  # Mises à jour intégrées (MIT), version épinglée : https://github.com/sparkle-project/Sparkle
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    exactVersion: 2.10.0
+targets:
+  Hoverguard:
+    type: application
+    platform: macOS
+    sources: [Sources, Ressources]
+    info:
+      path: Info.plist
+      properties:
+        LSUIElement: true            # app de barre de menus, sans icône dans le Dock
+        CFBundleDisplayName: Hoverguard
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)   # croissant d'une version à l'autre : Sparkle s'en sert
+        NSHumanReadableCopyright: "© 2026 Utahpik"
+        NSCameraUsageDescription: "Hoverguard prend une photo quand quelqu'un se trompe de mot de passe pendant ton absence. Elle reste sur ton Mac."
+        NSAppleEventsUsageDescription: "Hoverguard envoie les notifications sur ton iPhone par iMessage, via Messages."
+        # Mises à jour : flux publié avec chaque Release GitHub, archives signées EdDSA par Utahpik.
+        SUFeedURL: https://github.com/AnthonyTrtre/hoverguard/releases/latest/download/appcast.xml
+        SUPublicEDKey: Y15cE6R1KbQKkp/ZrbcCYT27rS7axlRVY8UjKovweTk=
+        SUEnableAutomaticChecks: true
+        SUAutomaticallyUpdate: true    # téléchargées en arrière-plan, installées à la fermeture
+        SUScheduledCheckInterval: 86400
+        SUVerifyUpdateBeforeExtraction: true
+        CFBundleURLTypes:
+          - CFBundleURLName: com.utahpik.hoverguard
+            CFBundleURLSchemes: [hoverguard]
+    # Hardened Runtime : la caméra et le pilotage de Messages doivent être déclarés.
+    entitlements:
+      path: Hoverguard.entitlements
+      properties:
+        com.apple.security.device.camera: true
+        com.apple.security.automation.apple-events: true
+        # Le certificat Utahpik (auto-signé, sans équipe Apple) ne passe pas la validation des bibliothèques : sans
+        # cette clé, macOS refuse de charger Sparkle.framework. Les variables DYLD restent bloquées par le runtime.
+        com.apple.security.cs.disable-library-validation: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.utahpik.hoverguard
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ENABLE_APP_SANDBOX: NO
+    dependencies:
+      - package: Socle
+        product: SocleCore
+      - package: Socle
+        product: SocleBarreDeMenus
+      - package: Socle
+        product: SocleEnergie
+      - package: Sparkle
+        product: Sparkle
+  HoverguardTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources: [Tests]
+    dependencies: [{ target: Hoverguard }]
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.utahpik.hoverguard.tests

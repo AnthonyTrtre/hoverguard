@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Logique pure de Hoverguard : aucune dépendance à Windows, testée sous Linux comme sous Windows. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Hoverguard.Coeur</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Vérification Ed25519 des licences Pro (code entièrement managé, licence MIT). Version épinglée. -->
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Hoverguard.Tests" />
+  </ItemGroup>
+</Project>

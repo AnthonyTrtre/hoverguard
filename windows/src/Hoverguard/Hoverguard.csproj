@@ -1,0 +1,61 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <!-- 10.0.19041 = Windows 10 version 2004 : minimum pour WDA_EXCLUDEFROMCAPTURE. -->
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <!-- WPF et Windows Forms ensemble : les « using » sont écrits à la main pour éviter les ambiguïtés. -->
+    <ImplicitUsings>disable</ImplicitUsings>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Logo officiel « Sentinelle » (docs/logo/logo.svg) : icône de l'exe dans l'Explorateur et la barre des tâches. -->
+    <ApplicationIcon>..\..\ressources\hoverguard.ico</ApplicationIcon>
+    <AssemblyName>Hoverguard</AssemblyName>
+    <RootNamespace>Hoverguard</RootNamespace>
+    <AssemblyTitle>Hoverguard</AssemblyTitle>
+    <Description>Un drone garde votre écran pendant que vos agents IA travaillent.</Description>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <SatelliteResourceLanguages>fr</SatelliteResourceLanguages>
+    <!-- WFAC010 : la mise à l'échelle est réglée pour WPF dans app.manifest (PerMonitorV2), c'est voulu. -->
+    <NoWarn>$(NoWarn);WFAC010</NoWarn>
+  </PropertyGroup>
+
+  <!-- Exécutable autonome en un seul fichier : `dotnet publish -c Release -r win-x64`. -->
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' != ''">
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <!-- Édition de lancement (Pro offert à vie au premier lancement) : `dotnet publish … -p:EditionLancement=true`. -->
+  <PropertyGroup Condition="'$(EditionLancement)' == 'true'">
+    <DefineConstants>$(DefineConstants);EDITION_LANCEMENT</DefineConstants>
+  </PropertyGroup>
+
+  <!-- Date de compilation : les licences couvrent les versions compilées jusqu'à leur date de fin. -->
+  <ItemGroup>
+    <AssemblyMetadata Include="DateDeVersion" Value="$([System.DateTime]::UtcNow.ToString('yyyy-MM-dd'))" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3650.58" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Hoverguard.Coeur\Hoverguard.Coeur.csproj" />
+  </ItemGroup>
+
+  <!-- Le drone 3D : page, script et three.js embarqués dans l'exe, servis à WebView2 sans réseau. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Web\**\*.html;Web\**\*.js" LogicalName="Web/%(RecursiveDir)%(Filename)%(Extension)" />
+    <None Include="Web\three\LICENSE" />
+  </ItemGroup>
+
+  <!-- Logo et icônes de la zone de notification (libre / garde, barre sombre / claire), lus à l'exécution. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\ressources\hoverguard.ico;..\..\ressources\notification-*.ico" LogicalName="Icones/%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>
