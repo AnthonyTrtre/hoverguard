@@ -1,0 +1,39 @@
+# Diagnostic manuel : télécharge l'exe d'une Release et le lance comme un utilisateur (double-clic), puis relève
+# si le processus tourne, le journal de Hoverguard et les erreurs .NET de l'Observateur d'événements.
+name: Diagnostic Windows
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Étiquette de la Release (ex. v1.0.0)"
+        required: true
+        default: v1.0.0
+
+permissions:
+  contents: read
+
+jobs:
+  lancement:
+    runs-on: windows-latest
+    steps:
+      - name: Télécharger l'exe publié
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download ${{ inputs.version }} -R ${{ github.repository }} -p "*.exe" -D exe
+      - name: Lancer comme un double-clic et observer
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem exe\*.exe | Select-Object -First 1
+          Write-Host "Exe : $($exe.Name) ($([math]::Round($exe.Length/1MB,1)) Mo)"
+          Start-Process -FilePath $exe.FullName
+          Start-Sleep -Seconds 25
+          $p = Get-Process -Name ($exe.BaseName) -ErrorAction SilentlyContinue
+          if ($p) { Write-Host "PROCESSUS EN VIE : $($p.Id), $([math]::Round($p.WorkingSet64/1MB)) Mo" } else { Write-Host "PROCESSUS ABSENT (arrêt ou plantage)" }
+          Write-Host "--- Journal Hoverguard"
+          Get-ChildItem "$env:LOCALAPPDATA\Utahpik\Hoverguard" -Recurse -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_.FullName }
+          Get-ChildItem "$env:LOCALAPPDATA\Utahpik\Hoverguard" -Filter *.log -Recurse -ErrorAction SilentlyContinue | ForEach-Object { Get-Content $_.FullName -Tail 40 }
+          Write-Host "--- Erreurs d'application (.NET, plantages)"
+          Get-WinEvent -FilterHashtable @{LogName='Application'; StartTime=(Get-Date).AddMinutes(-5)} -ErrorAction SilentlyContinue |
+            Where-Object { $_.ProviderName -in '.NET Runtime','Application Error','Windows Error Reporting' } |
+            ForEach-Object { Write-Host "[$($_.ProviderName) $($_.Id)]"; Write-Host $_.Message }
