@@ -205,9 +205,11 @@ final class ControleurGarde {
         guard etat != .libre, contexteDiscret == nil else { return }
         let contexte = LAContext()
         contexte.localizedFallbackTitle = ""  // pas de bouton « mot de passe » ici : une touche suffit pour ça
-        guard contexte.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil) else {
+        var indisponible: NSError?
+        guard contexte.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &indisponible) else {
             // Capteur indisponible (capot fermé, clavier Touch ID débranché) : on réessaie jusqu'à son retour.
             guard !reessaiTouchIDPrevu else { return }
+            Journal.app.notice("Touch ID indisponible (\(indisponible?.code ?? 0, privacy: .public)) : nouvel essai dans 2 s")
             reessaiTouchIDPrevu = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                 self.reessaiTouchIDPrevu = false
@@ -216,11 +218,17 @@ final class ControleurGarde {
             return
         }
         contexteDiscret = contexte
+        Journal.app.notice("Touch ID armé")
         Task {
-            let ok = (try? await contexte.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics,
-                                                         localizedReason: "lever la garde de l'écran")) ?? false
+            var ok = false, code = 0
+            do {
+                ok = try await contexte.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics,
+                                                       localizedReason: "lever la garde de l'écran")
+            } catch { code = (error as NSError).code }
             guard contexteDiscret === contexte else { return }  // remplacé ou annulé entre-temps
             contexteDiscret = nil
+            // Codes LAError (jamais de donnée personnelle) : -4 annulé par le système, -8 verrouillé, -6 indisponible…
+            Journal.app.notice("Touch ID : \(ok ? "réussi" : "échec", privacy: .public) (\(code, privacy: .public))")
             if ok { return deverrouiller() }
             echecsDiscrets += 1
             let delai = min(Double(echecsDiscrets), 3)  // Touch ID toujours prêt à reprendre la main
@@ -232,6 +240,7 @@ final class ControleurGarde {
     /// capteur était coupé. On la remplace par une neuve.
     func rearmerTouchID() {
         guard etat != .libre else { return }
+        Journal.app.notice("Touch ID réarmé (réveil, capot ou session déverrouillée)")
         contexteDiscret?.invalidate()
         contexteDiscret = nil
         armerTouchIDDiscret()

@@ -84,6 +84,18 @@ final class Delegue: NSObject, NSApplicationDelegate, NSMenuDelegate, SPUUpdater
                                                           queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.garde.rearmerTouchID() }
         }
+        // Capot fermé sans le mode « rester éveillé » : le Mac dort et macOS verrouille la session. La demande Touch ID
+        // lancée au réveil, écran verrouillé, reste bloquée : on la renouvelle au déverrouillage de la session.
+        for nom in ["com.apple.screenIsUnlocked", "com.apple.screenIsLocked"] {
+            DistributedNotificationCenter.default().addObserver(forName: Notification.Name(nom), object: nil,
+                                                                queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.garde.rearmerTouchID() }
+            }
+        }
+        NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.sessionDidBecomeActiveNotification,
+                                                          object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.garde.rearmerTouchID() }
+        }
         capot.etatGarde = { [weak self] in self?.garde.etat ?? .libre }
         capot.seuilBatterie = { [weak self] in self?.eveil.seuilBatterie ?? 20 }
         capot.demarrer()
