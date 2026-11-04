@@ -39,6 +39,8 @@ final class Delegue: NSObject, NSApplicationDelegate, NSMenuDelegate, SPUUpdater
     private var extinction = false
     /// « Quitter Hoverguard » choisi dans le menu : l'éveil s'arrête vraiment (sinon il reprend au prochain lancement).
     private var quitterDemande = false
+    /// Rapport de plantage du lancement précédent : proposé écran libre seulement, jamais pendant une garde.
+    private var plantage: URL?
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         extinction || garde.etat == .libre ? .terminateNow : .terminateCancel
@@ -74,6 +76,8 @@ final class Delegue: NSObject, NSApplicationDelegate, NSMenuDelegate, SPUUpdater
                 self.relanceEnAttente = nil
                 relance()
             }
+            // Après le déverrouillage, pas au milieu : la question attend la fin du changement d'état.
+            DispatchQueue.main.async { self.proposerPlantage() }
         }
         eveil.surChangement = { [weak self] in self?.rafraichirIcone() }
         eveil.restaurer()
@@ -101,7 +105,15 @@ final class Delegue: NSObject, NSApplicationDelegate, NSMenuDelegate, SPUUpdater
         capot.demarrer()
         rafraichirIcone()
         proposerOuvertureALaConnexion()
+        plantage = SignalementPlantage.chercher()
+        proposerPlantage()
         if !Filtre.autorise { Filtre.demanderAutorisation() }
+    }
+
+    private func proposerPlantage() {
+        guard let fichier = plantage, garde.etat == .libre else { return }
+        plantage = nil
+        SignalementPlantage.proposer(fichier)
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {

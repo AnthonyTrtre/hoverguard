@@ -39,9 +39,24 @@ internal static class Programme
         var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
         // Une erreur imprévue ne doit jamais fermer Hoverguard pendant une garde : elle est notée dans le journal et
         // l'app continue. (Si elle s'arrête quand même, le gardien verrouille la session.)
-        app.DispatcherUnhandledException += (_, e) => { Journal.Erreur($"Erreur inattendue : {e.Exception}"); e.Handled = true; };
-        AppDomain.CurrentDomain.UnhandledException += (_, e) => Journal.Erreur($"Erreur fatale : {e.ExceptionObject}");
-        TaskScheduler.UnobservedTaskException += (_, e) => { Journal.Erreur($"Erreur en arrière-plan : {e.Exception}"); e.SetObserved(); };
+        // Chaque erreur laisse aussi plantage.txt, proposé au lancement suivant (jamais envoyé sans un clic).
+        app.DispatcherUnhandledException += (_, e) =>
+        {
+            Journal.Erreur($"Erreur inattendue : {e.Exception}");
+            Plantage.Noter(e.Exception, fatal: false);
+            e.Handled = true;
+        };
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+        {
+            Journal.Erreur($"Erreur fatale : {e.ExceptionObject}");
+            if (e.ExceptionObject is Exception ex) Plantage.Noter(ex, fatal: e.IsTerminating);
+        };
+        TaskScheduler.UnobservedTaskException += (_, e) =>
+        {
+            Journal.Erreur($"Erreur en arrière-plan : {e.Exception}");
+            Plantage.Noter(e.Exception, fatal: false);
+            e.SetObserved();
+        };
         var hote = new Hote(app);
         canal.Ecouter(texte => app.Dispatcher.BeginInvoke(() => hote.RecevoirUrl(texte)));
         app.Startup += (_, _) =>
@@ -73,6 +88,8 @@ internal sealed class Hote
     // par jour ; le reste du temps, on regarde seulement si une mise à jour prête peut s'installer).
     private readonly DispatcherTimer minuterieMaj = new() { Interval = TimeSpan.FromMinutes(2) };
     private DateTime derniereRecherche = DateTime.MinValue;
+    /// <summary>Rapport de plantage du lancement précédent : proposé écran libre seulement, jamais sous la garde.</summary>
+    private string? plantage;
 
     public Hote(Application app)
     {
@@ -106,7 +123,7 @@ internal sealed class Hote
             if (e.Button == Forms.MouseButtons.Left)
                 typeof(Forms.NotifyIcon).GetMethod("ShowContextMenu", BindingFlags.Instance | BindingFlags.NonPublic)?.Invoke(icone, null);
         };
-        garde.SurChangement = RafraichirIcone;
+        garde.SurChangement = () => { RafraichirIcone(); app.Dispatcher.BeginInvoke(ProposerPlantage); };
         garde.MotDePasseManquant = DemanderMotDePasse;
         eveil.SurChangement = RafraichirIcone;
         eveil.Restaurer();
@@ -119,6 +136,15 @@ internal sealed class Hote
         minuterieMaj.Start();
         Journal.Info($"Hoverguard démarré ({Environment.OSVersion.Version})");
         if (garde.MotDePasseApp is null) DemanderMotDePasse();
+        plantage = Plantage.Chercher();
+        app.Dispatcher.BeginInvoke(ProposerPlantage);
+    }
+
+    private void ProposerPlantage()
+    {
+        if (plantage is not string fichier || garde.Etat != EtatGarde.Libre) return;
+        plantage = null;
+        Plantage.Proposer(fichier);
     }
 
     public void FinDeSession() => garde.FinDeSession();

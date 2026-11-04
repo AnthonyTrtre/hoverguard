@@ -218,6 +218,7 @@ développement : servez `src/Hoverguard/Web/` en HTTP local et ouvrez `drone.htm
 | Réglages | `%APPDATA%\Utahpik\Hoverguard\reglages.json` |
 | Licence, début de l'essai, cadeau de lancement | `%APPDATA%\Utahpik\Hoverguard\pro.json` |
 | Journal (1 Mo au plus, sans mot de passe) | `%LOCALAPPDATA%\Utahpik\Hoverguard\journal.txt` |
+| Dernier rapport de plantage | `%LOCALAPPDATA%\Utahpik\Hoverguard\plantage.txt` |
 | Photos d'intrus | `%LOCALAPPDATA%\Utahpik\Hoverguard\intrus\` |
 | Cache du moteur WebView2 | `%LOCALAPPDATA%\Utahpik\Hoverguard\WebView2\` |
 | Schéma d'URL, ouverture au démarrage | `HKCU\Software\Classes\hoverguard`, `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` |
@@ -225,6 +226,8 @@ développement : servez `src/Hoverguard/Web/` en HTTP local et ouvrez `drone.htm
 Aucune télémétrie. Seule connexion réseau : la recherche quotidienne de mises à jour dans les Releases GitHub
 (désactivable). Les services d'arrière-plan du moteur WebView2 (mises à jour de
 composants, rapports…) sont coupés par des options de lancement.
+En cas de plantage, Hoverguard propose au lancement suivant d'ouvrir une issue GitHub pré-remplie (sans votre nom ni
+celui du PC) ; rien n'est envoyé sans votre clic.
 
 ## Limites connues
 - **Fenêtres administrateur.** Une app sans droits d'administrateur ne voit pas les touches destinées à une fenêtre

@@ -91,6 +91,8 @@ Réglages › Garde permet de couper la vérification ou l'installation automati
 Aucune télémétrie. La seule connexion réseau est la vérification des mises à jour auprès de GitHub (désactivable),
 qui ne transmet rien d'autre que la requête elle-même. Les photos d'intrus restent sur votre disque. Les notifications iMessage
 (désactivées par défaut) partent de votre propre app Messages, vers vous-même.
+En cas de plantage, Hoverguard propose au lancement suivant d'ouvrir une issue GitHub pré-remplie (sans votre nom ni
+celui de la machine) ; rien n'est envoyé sans votre clic.
 
 ## Licence et marque
 Le code est sous licence [MIT](LICENSE) : vous pouvez l'utiliser, le modifier et le redistribuer, en gardant la
