@@ -76,6 +76,13 @@ Menu Hoverguard › Réglages › Agents : un clic ajoute les « hooks » de Cla
 copie de sauvegarde de leur fichier de réglages est faite). Chaque outil prévient alors Hoverguard par une URL locale
 `hoverguard://agent?nom=…&etat=travail|attente|fini`. Rien ne sort de votre ordinateur.
 
+**Contrôle de l'ordinateur par Claude (macOS) sous la garde.** L'outil de contrôle de l'ordinateur de l'app Claude
+refuse un clic « plein écran » (`left_click`) dès qu'une fenêtre d'une app non autorisée est sous le point visé. Or le
+voile couvre tout l'écran, et Hoverguard, app de barre des menus, ne peut pas être ajouté aux apps autorisées. Sous la
+garde, les agents doivent donc utiliser les outils qui ciblent une fenêtre (`app_click`, `app_type`, `app_screenshot`…),
+qui traversent le voile, ou l'extension Claude in Chrome. Le voile reste transparent aux clics : c'est seulement ce
+contrôle préalable de l'outil qui refuse.
+
 ## Mises à jour
 **Windows** : une fois par jour, Hoverguard regarde la dernière Release de ce dépôt ([Velopack](https://velopack.io)),
 télécharge la nouvelle version en arrière-plan et l'installe quand le PC est inutilisé depuis 10 minutes ou quand vous
