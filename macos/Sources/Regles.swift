@@ -99,6 +99,12 @@ enum ReglesGarde {
         guard echecs >= 5 else { return nil }
         return min(Double(echecs - 4) * 3, 120)
     }
+
+    /// Inactivité pour la garde automatique : la levée de la garde compte comme une activité (Touch ID ne passe pas
+    /// par le clavier ni la souris).
+    static func inactivite(materielle: TimeInterval, depuisLevee: TimeInterval) -> TimeInterval {
+        min(materielle, depuisLevee)
+    }
 }
 
 /// Ce que les agents (Claude Code, Codex…) signalent par `hoverguard://agent?nom=…&etat=…`.

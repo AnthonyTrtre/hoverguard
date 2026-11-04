@@ -104,6 +104,9 @@ final class ControleurGarde {
     // MARK: Garde
 
     private var dernierVerrouillageParURL = Date.distantPast
+    /// Touch ID lève la garde sans toucher au clavier ni à la souris : sans ce repère, l'inactivité matérielle dépasse
+    /// déjà le seuil et la garde automatique revenait dans les 10 s.
+    private var derniereLevee = Date.distantPast
     /// Garde posée au dernier arrêt de l'app : si elle est encore vraie au lancement, l'app s'est arrêtée en pleine garde.
     private var gardeEnCours: Bool {
         get { reglages.bool(forKey: "gardeEnCours") }
@@ -181,6 +184,7 @@ final class ControleurGarde {
     func deverrouiller() {
         guard etat != .libre else { return }
         etat = .libre
+        derniereLevee = .now
         contexteDiscret?.invalidate()
         contexteDiscret = nil
         voile.etat.approche = false
@@ -350,7 +354,7 @@ final class ControleurGarde {
         if etat != .libre { rafraichirVoile() }  // batterie à jour même si le relevé des agents tarde
         let b = Batterie.lire()
         if etat != .libre, !b.surSecteur, let n = b.niveau, n <= 20 { alerter(.batterieFaible, "Plus que \(n) % de batterie.") }
-        if etat == .libre, gardeAutoMinutes > 0, totalActifs > 0 || gardeAutoSansAgent, Inactivite.secondes > Double(gardeAutoMinutes) * 60 {
+        if etat == .libre, gardeAutoMinutes > 0, totalActifs > 0 || gardeAutoSansAgent, ReglesGarde.inactivite(materielle: Inactivite.secondes, depuisLevee: Date.now.timeIntervalSince(derniereLevee)) > Double(gardeAutoMinutes) * 60 {
             Journal.app.info("Garde posée automatiquement après \(self.gardeAutoMinutes) min d'inactivité")
             verrouiller()
         }

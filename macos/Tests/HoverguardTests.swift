@@ -69,6 +69,11 @@ import Testing
         #expect(ReglesGarde.attenteApres(echecs: 50) == 120)
     }
 
+    @Test func laLeveeParTouchIDRepousseLaGardeAuto() {
+        #expect(ReglesGarde.inactivite(materielle: 3600, depuisLevee: 1) == 1)
+        #expect(ReglesGarde.inactivite(materielle: 30, depuisLevee: .infinity) == 30)
+    }
+
     @Test func motDePasseFauxRefuse() async {
         #expect(await MotDePasse.verifier("certainement-pas-le-bon-\(UUID().uuidString)") == false)
         #expect(await MotDePasse.verifier("") == false)
