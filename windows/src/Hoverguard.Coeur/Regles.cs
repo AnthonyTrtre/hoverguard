@@ -152,6 +152,15 @@ public sealed class SuiviEntrees
     /// <summary>Touches physiques tenues, pour traduire une touche en caractère pendant la saisie du mot de passe.</summary>
     public IReadOnlyCollection<int> Tenues => tenues;
 
+    /// <summary>Session verrouillée (Win+L, Ctrl+Alt+Suppr) ou réveil de veille : les relâchements se font sur l'écran
+    /// de verrouillage, que le crochet ne voit pas. Sans cet oubli, la touche Windows restait « tenue » et chaque
+    /// lettre du mot de passe passait pour un raccourci : rien ne s'écrivait.</summary>
+    public void Oublier()
+    {
+        tenues.Clear();
+        passees.Clear();
+    }
+
     public Verdict Clavier(int vk, bool enfoncee, bool injectee, EtatGarde etat)
     {
         if (injectee) return new(Decision.Laisser);

@@ -176,6 +176,20 @@ public class SuiviEntreesTests
     }
 
     [Fact]
+    public void ApresWinLLaToucheWindowsNEstPlusTenue()
+    {
+        var s = new SuiviEntrees();
+        s.Clavier(Touches.WinGauche, true, false, EtatGarde.Libre);
+        s.Clavier('L', true, false, EtatGarde.Libre);  // session verrouillée : les relâchements échappent au crochet
+        Assert.True(s.Win);
+        s.Oublier();
+        Assert.False(s.Win);
+        Assert.Empty(s.Tenues);
+        Assert.Equal(Decision.Saisir, s.Clavier('A', true, false, EtatGarde.Authentification).Decision);
+        Assert.NotNull(ActionSaisie.Depuis('A', "a", s.Ctrl, s.Alt, s.Win));
+    }
+
+    [Fact]
     public void GardeAutomatiqueSurInactivitePhysique()
     {
         Assert.True(ReglesGardeAuto.DoitPoser(EtatGarde.Libre, 15, 1, TimeSpan.FromMinutes(16)));

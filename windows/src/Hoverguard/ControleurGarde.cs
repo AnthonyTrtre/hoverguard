@@ -53,6 +53,7 @@ internal sealed class ControleurGarde
     private FenetreRapport? fenetreRapport;
     private readonly LimiteurAlertes limiteur = new();
     private bool enPose;
+    private volatile bool sessionVerrouillee;
     public Action SurChangement = () => { };
 
     public ControleurGarde(Reglages reglages, Action enregistrer)
@@ -96,7 +97,18 @@ internal sealed class ControleurGarde
         SystemEvents.DisplaySettingsChanged += (_, _) => interface_.BeginInvoke(DemanderRepose);
         SystemEvents.PowerModeChanged += (_, e) =>
         {
-            if (e.Mode == PowerModes.Resume) interface_.BeginInvoke(DemanderRepose);
+            if (e.Mode != PowerModes.Resume) return;
+            Filtre.ApresVerrouillage();
+            interface_.BeginInvoke(DemanderRepose);
+        };
+        // Session Windows verrouillée : pas de garde automatique derrière l'écran de verrouillage (elle apparaissait à
+        // l'ouverture de la session, retour de Matheo, 1.1.4).
+        SystemEvents.SessionSwitch += (_, e) =>
+        {
+            if (e.Reason == SessionSwitchReason.SessionLock) sessionVerrouillee = true;
+            else if (e.Reason == SessionSwitchReason.SessionUnlock) sessionVerrouillee = false;
+            else return;
+            Filtre.ApresVerrouillage();
         };
         surveillance.Start();
         Detecter();  // premier relevé : la référence des temps processeur
@@ -331,7 +343,7 @@ internal sealed class ControleurGarde
         var b = Batterie.Lire();
         if (Etat != EtatGarde.Libre && !b.SurSecteur && b.Niveau is int n && n <= 20) Alerter(Alerte.BatterieFaible, $"Plus que {n} % de batterie.");
         // Sans mot de passe choisi, pas de garde automatique (sinon les réglages s'ouvriraient en boucle).
-        if (MotDePasseApp is not null
+        if (MotDePasseApp is not null && !sessionVerrouillee
             && ReglesGardeAuto.DoitPoser(Etat, reglages.GardeAutoMinutes, TotalActifs, Filtre.InactivitePhysique, reglages.GardeAutoSansAgent))
         {
             Journal.Info($"Garde posée automatiquement après {reglages.GardeAutoMinutes} min d'inactivité");

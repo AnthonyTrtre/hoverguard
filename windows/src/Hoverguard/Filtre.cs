@@ -27,7 +27,7 @@ namespace Hoverguard;
 internal sealed class Filtre : IDisposable
 {
     private static readonly UIntPtr MarqueSonde = new(0x486F7672);  // « Hovr »
-    private const uint MsgReposer = Natif.WM_APP + 1, MsgOublierToucheMorte = Natif.WM_APP + 2;
+    private const uint MsgReposer = Natif.WM_APP + 1, MsgOublierToucheMorte = Natif.WM_APP + 2, MsgOublierTouches = Natif.WM_APP + 3;
 
     private readonly SuiviEntrees suivi = new();
     private readonly Natif.HookProc procClavier, procSouris;
@@ -73,6 +73,14 @@ internal sealed class Filtre : IDisposable
     /// <c>GetLastInputInfo</c>, les entrées injectées par les agents ne comptent pas.</summary>
     public TimeSpan InactivitePhysique => TimeSpan.FromMilliseconds(Environment.TickCount64 - Interlocked.Read(ref derniereEntreePhysique));
 
+    /// <summary>Retour de l'écran de verrouillage ou de veille : le mot de passe Windows vient d'y être tapé (activité,
+    /// même si le crochet ne l'a pas vu), et les touches restées « tenues » sont oubliées (<see cref="SuiviEntrees.Oublier"/>).</summary>
+    public void ApresVerrouillage()
+    {
+        Interlocked.Exchange(ref derniereEntreePhysique, Environment.TickCount64);
+        if (fil is not null) Natif.PostThreadMessage(idFil, MsgOublierTouches, IntPtr.Zero, IntPtr.Zero);
+    }
+
     public bool Demarrer()
     {
         if (fil is not null) return Actif;
@@ -87,6 +95,7 @@ internal sealed class Filtre : IDisposable
             {
                 if (msg.message == MsgReposer) { Retirer(); Poser(); }
                 else if (msg.message == MsgOublierToucheMorte) OublierToucheMorte();
+                else if (msg.message == MsgOublierTouches) suivi.Oublier();
             }
             Retirer();
         }) { IsBackground = true, Name = "Hoverguard filtre", Priority = ThreadPriority.Highest };
