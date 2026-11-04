@@ -106,7 +106,18 @@ internal sealed class ControleurGarde
         SystemEvents.SessionSwitch += (_, e) =>
         {
             if (e.Reason == SessionSwitchReason.SessionLock) sessionVerrouillee = true;
-            else if (e.Reason == SessionSwitchReason.SessionUnlock) sessionVerrouillee = false;
+            else if (e.Reason == SessionSwitchReason.SessionUnlock)
+            {
+                sessionVerrouillee = false;
+                // Le mot de passe Windows (ou Windows Hello) vient de prouver que le propriétaire est revenu : la garde
+                // posée avant le verrouillage est levée, pas de second mot de passe à taper (demande d'Anthony).
+                interface_.BeginInvoke(() =>
+                {
+                    if (Etat == EtatGarde.Libre) return;
+                    Journal.Info("Session Windows déverrouillée : garde levée");
+                    Deverrouiller();
+                });
+            }
             else return;
             Filtre.ApresVerrouillage();
         };
