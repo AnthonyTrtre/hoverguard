@@ -18,7 +18,10 @@ internal static class NatifGarde
     [DllImport("user32.dll")]
     public static extern short GetKeyState(int nVirtKey);
 
-    [DllImport("user32.dll")]
+    // CharSet.Unicode indispensable : sans lui, le tampon char[] est marshalé en ANSI (1 octet par caractère) alors que
+    // ToUnicodeEx y écrit cchBuff caractères de 2 octets, d'où une corruption du tas (0xC0000374) à chaque frappe
+    // pendant la garde (signalé par Mathéo, 1.1.1).
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
     public static extern int ToUnicodeEx(uint wVirtKey, uint wScanCode, byte[] lpKeyState,
         [Out] char[] pwszBuff, int cchBuff, uint wFlags, IntPtr dwhkl);
 

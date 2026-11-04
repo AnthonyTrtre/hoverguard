@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace Hoverguard.Tests;
 
 public class PlantageTests
@@ -69,5 +71,34 @@ public class PlantageTests
         Assert.Contains(RapportPlantage.Tronque, corps);
         Assert.Contains("ligne é + & = #", corps);
         Assert.True(RapportPlantage.Url("1.1.2", "Windows", "x64", corps, RapportPlantage.TailleMaxUrlWindows).Length <= 2000);
+    }
+}
+
+/// <summary>Garde-fou du plantage 0xC0000374 de la 1.1.1 : un appel Windows qui reçoit du texte (char[], string,
+/// StringBuilder) doit déclarer CharSet, sinon .NET le marshale en ANSI et Windows déborde du tampon.</summary>
+public class AppelsWindowsTests
+{
+    [Fact]
+    public void ToutAppelAvecDuTexteDeclareSonCharSet()
+    {
+        var dossier = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dossier is not null && !Directory.Exists(Path.Combine(dossier.FullName, "src", "Hoverguard"))) dossier = dossier.Parent;
+        Assert.NotNull(dossier);
+        var fautifs = new List<string>();
+        foreach (var f in Directory.GetFiles(Path.Combine(dossier!.FullName, "src"), "*.cs", SearchOption.AllDirectories))
+        {
+            var lignes = File.ReadAllLines(f);
+            for (int i = 0; i < lignes.Length; i++)
+            {
+                if (!lignes[i].Contains("[DllImport(") || lignes[i].Contains("CharSet")) continue;
+                var suite = string.Join(" ", lignes.Skip(i).Take(3));
+                var declaration = suite[..(suite.IndexOf(';') is int fin and >= 0 ? fin : suite.Length)];
+                if (Regex.IsMatch(declaration, @"char\[\]|\bstring\b|StringBuilder"))
+                    fautifs.Add($"{Path.GetFileName(f)}:{i + 1}");
+            }
+        }
+        Assert.Empty(fautifs);
+        Assert.Contains("CharSet = CharSet.Unicode, ExactSpelling = true)]\n    public static extern int ToUnicodeEx",
+            File.ReadAllText(Path.Combine(dossier.FullName, "src", "Hoverguard", "SecuriteGarde.cs")).ReplaceLineEndings("\n"));
     }
 }
