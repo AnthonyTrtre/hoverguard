@@ -82,7 +82,6 @@ final class Delegue: NSObject, NSApplicationDelegate, NSMenuDelegate, SPUUpdater
         eveil.surChangement = { [weak self] in self?.rafraichirIcone() }
         eveil.restaurer()
         garde.demarrer()
-        capot.poserGarde = { [weak self] in self?.garde.verrouiller() }
         capot.surOuverture = { [weak self] in self?.garde.rearmerTouchID() }
         NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.screensDidWakeNotification, object: nil,
                                                           queue: .main) { [weak self] _ in

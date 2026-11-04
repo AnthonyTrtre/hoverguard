@@ -437,16 +437,18 @@ import Testing
 @Suite struct CapotTests {
     @Test func veilleInterditeSaufBatterieBasse() {
         let secteur = EtatBatterie(niveau: 50, surSecteur: true), basse = EtatBatterie(niveau: 15, surSecteur: false)
-        #expect(ReglesCapot.doitEmpecherVeille(option: true, batterie: secteur, seuil: 20))
-        #expect(!ReglesCapot.doitEmpecherVeille(option: true, batterie: basse, seuil: 20))
-        #expect(!ReglesCapot.doitEmpecherVeille(option: false, batterie: secteur, seuil: 20))
+        #expect(ReglesCapot.doitEmpecherVeille(option: true, etat: .garde, batterie: secteur, seuil: 20))
+        #expect(!ReglesCapot.doitEmpecherVeille(option: true, etat: .garde, batterie: basse, seuil: 20))
+        #expect(!ReglesCapot.doitEmpecherVeille(option: false, etat: .garde, batterie: secteur, seuil: 20))
+        #expect(!ReglesCapot.doitEmpecherVeille(option: true, etat: .libre, batterie: secteur, seuil: 20))  // sans garde, le Mac dort
     }
 
-    @Test func gardePoseeSeulementALaFermeture() {
-        #expect(ReglesCapot.doitPoserGarde(option: true, etaitFerme: false, estFerme: true, etat: .libre))
-        #expect(!ReglesCapot.doitPoserGarde(option: true, etaitFerme: true, estFerme: true, etat: .libre))   // levée capot fermé : pas de nouvelle garde
-        #expect(!ReglesCapot.doitPoserGarde(option: false, etaitFerme: false, estFerme: true, etat: .libre))
-        #expect(!ReglesCapot.doitPoserGarde(option: true, etaitFerme: false, estFerme: true, etat: .garde))
+    @Test func capotFermeSansGardeVerrouilleLaSession() {
+        #expect(ReglesCapot.doitVerrouillerSession(option: true, etaitFerme: false, estFerme: true, etat: .libre, ecranExterne: false))
+        #expect(!ReglesCapot.doitVerrouillerSession(option: true, etaitFerme: false, estFerme: true, etat: .garde, ecranExterne: false))  // la garde reste
+        #expect(!ReglesCapot.doitVerrouillerSession(option: true, etaitFerme: false, estFerme: true, etat: .libre, ecranExterne: true))
+        #expect(!ReglesCapot.doitVerrouillerSession(option: true, etaitFerme: true, estFerme: true, etat: .libre, ecranExterne: false))
+        #expect(!ReglesCapot.doitVerrouillerSession(option: false, etaitFerme: false, estFerme: true, etat: .libre, ecranExterne: false))
     }
 
     @Test func regleSudoLimiteeADeuxCommandes() {

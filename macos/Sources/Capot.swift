@@ -3,18 +3,19 @@ import IOKit
 import SocleCore
 import SocleEnergie
 
-/// Mode « capot fermé » : fermer l'écran du MacBook ne change rien (le Mac reste éveillé, les agents continuent) et
-/// la garde se pose aussitôt.
+/// Mode « capot fermé » (demande d'Anthony) : capot fermé sous la garde, le Mac reste éveillé et la garde reste ;
+/// capot fermé sans la garde, la session macOS se verrouille, comme un Mac ordinaire.
 enum ReglesCapot {
-    /// La veille reste interdite tant que l'option est active, sauf batterie trop basse (même seuil que l'éveil) : un
-    /// Mac fermé qui ne dort pas chauffe et se vide.
-    static func doitEmpecherVeille(option: Bool, batterie: EtatBatterie, seuil: Int) -> Bool {
-        option && !ReglesEveil.doitArreter(batterie, seuil: seuil)
+    /// La veille n'est interdite que sous la garde, et jamais sous le seuil de batterie de l'éveil : un Mac fermé qui ne
+    /// dort pas chauffe et se vide.
+    static func doitEmpecherVeille(option: Bool, etat: EtatGarde, batterie: EtatBatterie, seuil: Int) -> Bool {
+        option && etat != .libre && !ReglesEveil.doitArreter(batterie, seuil: seuil)
     }
 
-    /// Garde posée au moment où le capot se ferme (pas en continu : lever la garde capot fermé reste possible).
-    static func doitPoserGarde(option: Bool, etaitFerme: Bool, estFerme: Bool, etat: EtatGarde) -> Bool {
-        option && !etaitFerme && estFerme && etat == .libre
+    /// Session verrouillée au moment où le capot se ferme sans la garde. Pas avec un écran externe : le Mac fermé sert
+    /// alors d'unité centrale.
+    static func doitVerrouillerSession(option: Bool, etaitFerme: Bool, estFerme: Bool, etat: EtatGarde, ecranExterne: Bool) -> Bool {
+        option && !etaitFerme && estFerme && etat == .libre && !ecranExterne
     }
 
     /// Nom de compte accepté dans la règle sudo : lettres, chiffres, point, tiret, souligné.
@@ -38,6 +39,12 @@ enum Capot {
         defer { IOObjectRelease(racine) }
         let valeur = IORegistryEntryCreateCFProperty(racine, "AppleClamshellState" as CFString, kCFAllocatorDefault, 0)
         return (valeur?.takeRetainedValue() as? Bool) ?? false
+    }
+
+    static var ecranExterne: Bool {
+        var ids = [CGDirectDisplayID](repeating: 0, count: 16), n: UInt32 = 0
+        guard CGGetOnlineDisplayList(16, &ids, &n) == .success else { return false }
+        return ids.prefix(Int(n)).contains { CGDisplayIsBuiltin($0) == 0 }
     }
 }
 
@@ -89,15 +96,14 @@ enum VeilleCapot {
     }
 }
 
-/// Surveille le capot (toutes les secondes) et applique le mode : veille interdite tant que l'option est active et la
-/// batterie suffisante, garde posée à la fermeture.
+/// Surveille le capot (toutes les secondes) et applique le mode : veille interdite sous la garde (batterie suffisante),
+/// session verrouillée si le capot se ferme sans la garde.
 @MainActor
 final class ControleurCapot {
     private let reglages: UserDefaults
     private var minuteur: Timer?
     private var etaitFerme = Capot.estFerme
     private var veilleEmpechee: Bool?
-    var poserGarde: () -> Void = {}
     /// Capot rouvert (option active ou non) : Touch ID, coupé capot fermé, doit être réarmé.
     var surOuverture: () -> Void = {}
     var etatGarde: () -> EtatGarde = { .libre }
@@ -128,8 +134,8 @@ final class ControleurCapot {
     }
 
     private func verifier() {
-        let empecher = ReglesCapot.doitEmpecherVeille(option: option && VeilleCapot.autorisee, batterie: Batterie.lire(),
-                                                     seuil: seuilBatterie())
+        let empecher = ReglesCapot.doitEmpecherVeille(option: option && VeilleCapot.autorisee, etat: etatGarde(),
+                                                     batterie: Batterie.lire(), seuil: seuilBatterie())
         if empecher != veilleEmpechee, VeilleCapot.autorisee {
             if VeilleCapot.empecher(empecher) {
                 veilleEmpechee = empecher
@@ -137,9 +143,10 @@ final class ControleurCapot {
             }
         }
         let ferme = Capot.estFerme
-        if ReglesCapot.doitPoserGarde(option: option, etaitFerme: etaitFerme, estFerme: ferme, etat: etatGarde()) {
-            Journal.app.info("Capot fermé : garde posée")
-            poserGarde()
+        if ReglesCapot.doitVerrouillerSession(option: option, etaitFerme: etaitFerme, estFerme: ferme, etat: etatGarde(),
+                                              ecranExterne: Capot.ecranExterne) {
+            Journal.app.info("Capot fermé sans la garde : session verrouillée")
+            VerrouSession.verrouiller()
         }
         if etaitFerme, !ferme { surOuverture() }
         etaitFerme = ferme
