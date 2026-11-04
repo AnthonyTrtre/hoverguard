@@ -87,6 +87,12 @@ enum Regles {
     }
 }
 
+/// Le drone vole en permanence sous la garde et se pose de temps en temps : 4 à 8 s toutes les 4 à 6 minutes.
+enum ReglesVol {
+    static let attente: ClosedRange<TimeInterval> = 240...360
+    static let pause: ClosedRange<TimeInterval> = 4...8
+}
+
 enum ReglesGarde {
     /// Mots de passe faux : libre jusqu'à 5 erreurs, puis 3 s, 6 s, 9 s… plafonné à 2 min. Touch ID reste possible.
     static func attenteApres(echecs: Int) -> TimeInterval? {

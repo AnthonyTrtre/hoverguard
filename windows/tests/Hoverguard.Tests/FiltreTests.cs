@@ -187,4 +187,15 @@ public class SuiviEntreesTests
         Assert.False(ReglesGardeAuto.DoitPoser(EtatGarde.Libre, 0, 3, TimeSpan.FromHours(3)));
         Assert.False(ReglesGardeAuto.DoitPoser(EtatGarde.Garde, 15, 1, TimeSpan.FromHours(3)));
     }
+
+    [Fact]
+    public void DroneSePoseQuelquesSecondesToutesLesCinqMinutes()
+    {
+        var r = new Random(1);
+        for (int i = 0; i < 200; i++)
+        {
+            Assert.InRange(ReglesVol.Attente(r).TotalSeconds, 240, 360);
+            Assert.InRange(ReglesVol.Pause(r).TotalSeconds, 4, 8);
+        }
+    }
 }

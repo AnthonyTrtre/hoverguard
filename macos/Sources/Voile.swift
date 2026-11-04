@@ -9,6 +9,7 @@ final class EtatVoile {
     var equipe = ""
     var batterie: String?
     var agentsActifs = 0
+    var enVol = true
     /// Quelqu'un a touché le clavier : le drone s'approche et le mot de passe s'affiche.
     var approche = false
     var motDePasse = ""
@@ -27,6 +28,7 @@ final class EtatVoile {
 @MainActor
 final class Voile {
     private var fenetres: [NSWindow] = []
+    private var minuteurVol: Timer?
     let etat = EtatVoile()
 
     var estPose: Bool { !fenetres.isEmpty }
@@ -56,11 +58,27 @@ final class Voile {
             f.orderFrontRegardless()
             fenetres.append(f)
         }
+        etat.enVol = true
+        planifierVol(pause: false)
     }
 
     func retirer() {
+        minuteurVol?.invalidate()
+        minuteurVol = nil
         fenetres.forEach { $0.orderOut(nil) }
         fenetres = []
+    }
+
+    /// Alterne vol et courtes pauses au sol (`ReglesVol`) tant que le voile est posé.
+    private func planifierVol(pause: Bool) {
+        let duree = Double.random(in: pause ? ReglesVol.pause : ReglesVol.attente)
+        minuteurVol = Timer.scheduledTimer(withTimeInterval: duree, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, self.estPose else { return }
+                self.etat.enVol = pause
+                self.planifierVol(pause: !pause)
+            }
+        }
     }
 
     /// Affiche la demande sur l'écran principal. Hoverguard ne prend PAS le focus : c'est le filtre qui avale les
@@ -87,7 +105,7 @@ private struct VueVoile: View {
 
     var body: some View {
         ZStack {
-            VueDrone(enVol: etat.agentsActifs > 0, approche: etat.approche, principal: principal,
+            VueDrone(enVol: etat.enVol, approche: etat.approche, principal: principal,
                      intensiteLasers: etat.intensiteLasers)
                 .ignoresSafeArea()
             VStack(spacing: 14) {

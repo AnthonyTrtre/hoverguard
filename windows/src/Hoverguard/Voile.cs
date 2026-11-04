@@ -9,6 +9,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
+using Hoverguard.Coeur;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
 using Forms = System.Windows.Forms;
@@ -21,13 +22,14 @@ internal sealed class EtatVoile
     public string Phrase = "", Compteur = "", Equipe = "";
     public string? Batterie;
     public int AgentsActifs;
+    public bool EnVol = true;
     /// <summary>Quelqu'un a touché le clavier : le drone fonce vers lui et l'identification s'affiche.</summary>
     public bool Approche;
 
     public string EnJson(bool principal) => JsonSerializer.Serialize(new
     {
         phrase = Phrase, compteur = Compteur, equipe = Equipe, batterie = Batterie,
-        enVol = AgentsActifs > 0, approche = Approche, principal,
+        enVol = EnVol, approche = Approche, principal,
     });
 }
 
@@ -294,7 +296,19 @@ internal sealed class Voile
     private readonly List<FenetreVoile> fenetres = new();
     private CoreWebView2Environment? environnement;
     private bool environnementEssaye;
+    private readonly System.Windows.Threading.DispatcherTimer minuteurVol = new();
     public readonly EtatVoile Etat = new();
+
+    public Voile()
+    {
+        // Alterne vol et courtes pauses au sol (ReglesVol) tant que le voile est posé.
+        minuteurVol.Tick += (_, _) =>
+        {
+            Etat.EnVol = !Etat.EnVol;
+            minuteurVol.Interval = Etat.EnVol ? ReglesVol.Attente(Random.Shared) : ReglesVol.Pause(Random.Shared);
+            Actualiser();
+        };
+    }
 
     public bool EstPose => fenetres.Count > 0;
     public IReadOnlyList<FenetreVoile> Fenetres => fenetres;
@@ -325,6 +339,9 @@ internal sealed class Voile
             return false;
         }
         RendreLaMain(devant);
+        Etat.EnVol = true;
+        minuteurVol.Interval = ReglesVol.Attente(Random.Shared);
+        minuteurVol.Start();
         fenetresPosees?.Invoke();
         var env = await Environnement();
         foreach (var f in fenetres.ToList())
@@ -372,6 +389,7 @@ internal sealed class Voile
 
     public void Retirer()
     {
+        minuteurVol.Stop();
         foreach (var f in fenetres) f.Close();
         fenetres.Clear();
     }

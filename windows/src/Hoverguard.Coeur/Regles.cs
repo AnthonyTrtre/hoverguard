@@ -107,6 +107,14 @@ public static class Regles
     }
 }
 
+/// <summary>Le drone vole en permanence sous la garde et se pose de temps en temps : 4 à 8 s toutes les 4 à 6 minutes
+/// (comme sur macOS).</summary>
+public static class ReglesVol
+{
+    public static TimeSpan Attente(Random r) => TimeSpan.FromSeconds(r.Next(240, 361));
+    public static TimeSpan Pause(Random r) => TimeSpan.FromSeconds(r.Next(4, 9));
+}
+
 public static class ReglesGarde
 {
     /// <summary>Mots de passe faux : 4 essais libres, puis 3 s, 6 s, 9 s… plafonné à 2 min (comme sur macOS).</summary>
