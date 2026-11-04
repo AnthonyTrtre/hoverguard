@@ -63,6 +63,15 @@ public class PlantageTests
     }
 
     [Fact]
+    public void UrlDuRetourDepuisLeMenu()
+    {
+        var q = Requete(RapportPlantage.UrlRetour("1.1.5", "Windows 11"));
+        Assert.Equal("retour", q["labels"]);
+        Assert.Equal("Retour sur Hoverguard 1.1.5", q["title"]);
+        Assert.Contains("**Système** : Windows 11", q["body"]);
+    }
+
+    [Fact]
     public void UnRapportTropLongEstTronque()
     {
         var url = RapportPlantage.Url("1.1.2", "Windows", "x64", string.Concat(Enumerable.Repeat("ligne é + & = #\n", 2000)));

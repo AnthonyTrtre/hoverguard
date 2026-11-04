@@ -41,6 +41,11 @@ internal static class Plantage
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return null; }
     }
 
+    /// <summary>Rien n'est envoyé : le navigateur ouvre l'issue, l'utilisateur l'écrit et l'envoie lui-même.</summary>
+    public static void OuvrirRetour()
+        => Process.Start(new ProcessStartInfo(RapportPlantage.UrlRetour(FenetreReglages.VersionActuelle, Environment.OSVersion.VersionString))
+            { UseShellExecute = true });
+
     public static void Proposer(string fichier)
     {
         string contenu;

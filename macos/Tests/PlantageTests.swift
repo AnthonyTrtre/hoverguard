@@ -66,6 +66,13 @@ import Testing
         #expect(q["body"]?.contains(RapportPlantage.tronque) == false)
     }
 
+    @Test func urlDuRetourDepuisLeMenu() throws {
+        let c = try #require(URLComponents(url: RapportPlantage.urlRetour(version: "1.1.5", systeme: "macOS 26.6"), resolvingAgainstBaseURL: false))
+        let q = Dictionary(uniqueKeysWithValues: (c.queryItems ?? []).map { ($0.name, $0.value ?? "") })
+        #expect(q["labels"] == "retour" && q["title"] == "Retour sur Hoverguard 1.1.5")
+        #expect(q["body"]?.contains("**Système** : macOS 26.6") == true)
+    }
+
     @Test func unRapportTropLongEstTronque() throws {
         let long = String(repeating: "ligne é + & = #\n", count: 2000)
         let url = RapportPlantage.url(version: "1.1.2", systeme: "macOS", architecture: "arm64", extrait: long)

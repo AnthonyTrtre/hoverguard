@@ -100,6 +100,8 @@ qui ne transmet rien d'autre que la requête elle-même. Les photos d'intrus res
 (désactivées par défaut) partent de votre propre app Messages, vers vous-même.
 En cas de plantage, Hoverguard propose au lancement suivant d'ouvrir une issue GitHub pré-remplie (sans votre nom ni
 celui de la machine) ; rien n'est envoyé sans votre clic.
+Un souci ou une idée ? L'entrée « Dites-le-nous… » du menu ouvre une issue avec la version et le système, à
+écrire et envoyer vous-même.
 
 ## Licence et marque
 Le code est sous licence [MIT](LICENSE) : vous pouvez l'utiliser, le modifier et le redistribuer, en gardant la

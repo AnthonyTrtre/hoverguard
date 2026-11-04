@@ -178,6 +178,7 @@ final class Delegue: NSObject, NSApplicationDelegate, NSMenuDelegate, SPUUpdater
         menu.addItem(ItemAction("Rechercher des mises à jour…") { [weak self] in self?.miseAJour?.checkForUpdates(nil) })
         menu.addItem(ItemAction("Réglages…", touche: ",") { [weak self] in self?.reglages.montrer() })
         menu.addItem(ItemAction("À propos de Hoverguard") { [weak self] in self?.reglages.montrer(onglet: .aPropos) })
+        menu.addItem(ItemAction("Un souci ou une idée ? Dites-le-nous…") { SignalementPlantage.ouvrirRetour() })
         menu.addItem(.separator())
         menu.addItem(ItemAction("Quitter Hoverguard", touche: "q") { [weak self] in
             self?.quitterDemande = true

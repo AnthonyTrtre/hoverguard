@@ -64,6 +64,12 @@ enum RapportPlantage {
         return t
     }
 
+    /// « Un souci ou une idée ? » du menu : une issue vierge avec la version et le système, rien d'autre.
+    static func urlRetour(version: String, systeme: String) -> URL {
+        let corps = "**Version** : \(version)\n**Système** : \(systeme)\n\nCe qui s'est passé (ou votre idée) :\n\n\nCe que vous attendiez :\n\n"
+        return URL(string: "\(adresseIssues)?title=\(encoder("Retour sur Hoverguard \(version)"))&body=\(encoder(corps))&labels=retour")!
+    }
+
     /// Adresse de la nouvelle issue, bornée à `tailleMaxURL` caractères : au-delà, l'extrait est tronqué.
     static func url(version: String, systeme: String, architecture: String, extrait: String) -> URL {
         func adresse(_ e: String) -> String {
@@ -131,6 +137,13 @@ enum SignalementPlantage {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
         return RapportPlantage.url(version: version, systeme: "macOS \(ProcessInfo.processInfo.operatingSystemVersionString)",
                                    architecture: architecture, extrait: extrait)
+    }
+
+    /// Rien n'est envoyé : le navigateur ouvre l'issue, l'utilisateur l'écrit et l'envoie lui-même.
+    static func ouvrirRetour() {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
+        NSWorkspace.shared.open(RapportPlantage.urlRetour(
+            version: version, systeme: "macOS \(ProcessInfo.processInfo.operatingSystemVersionString)"))
     }
 
     private static func date(_ u: URL) -> Date? { try? u.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate }

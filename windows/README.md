@@ -228,6 +228,8 @@ Aucune télémétrie. Seule connexion réseau : la recherche quotidienne de mise
 composants, rapports…) sont coupés par des options de lancement.
 En cas de plantage, Hoverguard propose au lancement suivant d'ouvrir une issue GitHub pré-remplie (sans votre nom ni
 celui du PC) ; rien n'est envoyé sans votre clic.
+Un souci ou une idée ? L'entrée « Dites-le-nous… » du menu ouvre une issue avec la version et le système, à
+écrire et envoyer vous-même.
 
 ## Limites connues
 - **Fenêtres administrateur.** Une app sans droits d'administrateur ne voit pas les touches destinées à une fenêtre

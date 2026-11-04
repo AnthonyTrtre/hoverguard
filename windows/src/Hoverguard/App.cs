@@ -298,6 +298,7 @@ internal sealed class Hote
         menu.Items.Add(Item("Réglages…", () => Reglages_(FenetreReglages.Onglet.Garde)));
         menu.Items.Add(Item("Rechercher des mises à jour…", RechercherMiseAJour));
         menu.Items.Add(Item("À propos de Hoverguard", () => Reglages_(FenetreReglages.Onglet.APropos)));
+        menu.Items.Add(Item("Un souci ou une idée ? Dites-le-nous…", Plantage.OuvrirRetour));
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add(Item("Quitter Hoverguard", Quitter));
     }

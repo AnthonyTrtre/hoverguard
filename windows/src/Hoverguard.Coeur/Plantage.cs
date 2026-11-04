@@ -59,6 +59,13 @@ public static class RapportPlantage
         return t;
     }
 
+    /// <summary>« Un souci ou une idée ? » du menu : une issue vierge avec la version et le système, rien d'autre.</summary>
+    public static string UrlRetour(string version, string systeme)
+    {
+        var corps = $"**Version** : {version}\n**Système** : {systeme}\n\nCe qui s'est passé (ou votre idée) :\n\n\nCe que vous attendiez :\n\n";
+        return $"{AdresseIssues}?title={Uri.EscapeDataString($"Retour sur Hoverguard {version}")}&body={Uri.EscapeDataString(corps)}&labels=retour";
+    }
+
     /// <summary>Adresse de la nouvelle issue, bornée à <paramref name="tailleMax"/> caractères : au-delà, l'extrait
     /// est tronqué.</summary>
     public static string Url(string version, string systeme, string architecture, string extrait, int tailleMax = TailleMaxUrl)
