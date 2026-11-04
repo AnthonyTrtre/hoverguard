@@ -69,6 +69,13 @@ import Testing
         #expect(ReglesGarde.attenteApres(echecs: 50) == 120)
     }
 
+    @Test func touchIDSansReponseDepuisDeuxMinutesEstRenouvele() {
+        let t = Date(timeIntervalSince1970: 0)
+        #expect(!ReglesGarde.touchIDBloque(armeDepuis: t, maintenant: t.addingTimeInterval(119)))
+        #expect(ReglesGarde.touchIDBloque(armeDepuis: t, maintenant: t.addingTimeInterval(121)))
+        #expect(!ReglesGarde.touchIDBloque(armeDepuis: .distantFuture, maintenant: t))
+    }
+
     @Test func laLeveeParTouchIDRepousseLaGardeAuto() {
         #expect(ReglesGarde.inactivite(materielle: 3600, depuisLevee: 1) == 1)
         #expect(ReglesGarde.inactivite(materielle: 30, depuisLevee: .infinity) == 30)

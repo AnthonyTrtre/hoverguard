@@ -100,6 +100,11 @@ enum ReglesGarde {
         return min(Double(echecs - 4) * 3, 120)
     }
 
+    /// Une demande Touch ID qui ne répond plus (ni doigt, ni annulation) depuis 2 min est tenue pour bloquée.
+    static func touchIDBloque(armeDepuis: Date, maintenant: Date) -> Bool {
+        maintenant.timeIntervalSince(armeDepuis) > 120
+    }
+
     /// Inactivité pour la garde automatique : la levée de la garde compte comme une activité (Touch ID ne passe pas
     /// par le clavier ni la souris).
     static func inactivite(materielle: TimeInterval, depuisLevee: TimeInterval) -> TimeInterval {

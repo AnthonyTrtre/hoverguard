@@ -27,6 +27,9 @@ final class ControleurGarde {
     /// Touch ID armé en silence tant que la garde est posée (aussi pendant la saisie du mot de passe).
     private var contexteDiscret: LAContext?
     private var reessaiTouchIDPrevu = false
+    /// Demande Touch ID en cours depuis… : au-delà de 2 min sans réponse, elle est tenue pour bloquée et renouvelée.
+    private var armeDepuis = Date.distantFuture
+    private var rearmementPrevu: DispatchWorkItem?
     /// Changement d'alimentation (branché, débranché, niveau) : le message de batterie du voile suit tout de suite.
     private var sourceAlimentation: CFRunLoopSource?
     private var echecsDiscrets = 0
@@ -222,6 +225,7 @@ final class ControleurGarde {
             return
         }
         contexteDiscret = contexte
+        armeDepuis = .now
         Journal.app.notice("Touch ID armé")
         Task {
             var ok = false, code = 0
@@ -242,12 +246,21 @@ final class ControleurGarde {
 
     /// Capot rouvert, écran réveillé : la demande Touch ID en cours a pu être annulée ou rester bloquée pendant que le
     /// capteur était coupé. On la remplace par une neuve.
+    /// Capot rouvert, macOS envoie trois signaux à la suite (réveil, session déverrouillée, écrans) : réarmer à chacun
+    /// annulait la demande juste lancée et la dernière restait bloquée, sourde au doigt. Un seul réarmement, 1,5 s après
+    /// le dernier signal.
     func rearmerTouchID() {
         guard etat != .libre else { return }
-        Journal.app.notice("Touch ID réarmé (réveil, capot ou session déverrouillée)")
-        contexteDiscret?.invalidate()
-        contexteDiscret = nil
-        armerTouchIDDiscret()
+        rearmementPrevu?.cancel()
+        let travail = DispatchWorkItem { [weak self] in
+            guard let self, self.etat != .libre else { return }
+            Journal.app.notice("Touch ID réarmé (réveil, capot ou session déverrouillée)")
+            self.contexteDiscret?.invalidate()
+            self.contexteDiscret = nil
+            self.armerTouchIDDiscret()
+        }
+        rearmementPrevu = travail
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5, execute: travail)
     }
 
     /// Une touche ou un clic sous la garde : le drone s'approche et demande le mot de passe (Touch ID reste armé).
@@ -350,6 +363,11 @@ final class ControleurGarde {
             if NSWorkspace.shared.isVoiceOverEnabled { return garantirParLeSysteme("VoiceOver activé") }
         }
         if etat == .authentification, Date.now.timeIntervalSince(voile.etat.derniereActivite) > 60 { annulerReveil() }
+        if etat != .libre, contexteDiscret != nil, ReglesGarde.touchIDBloque(armeDepuis: armeDepuis, maintenant: .now) {
+            Journal.app.notice("Touch ID sans réponse depuis 2 min : renouvelé")
+            armeDepuis = .distantFuture
+            rearmerTouchID()
+        }
         journal?.sousAgents(sousAgentsActifs)
         if etat != .libre { rafraichirVoile() }  // batterie à jour même si le relevé des agents tarde
         let b = Batterie.lire()
