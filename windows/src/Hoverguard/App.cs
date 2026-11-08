@@ -265,6 +265,9 @@ internal sealed class Hote
             var poser = Item("Poser la garde", () => _ = g.Verrouiller());
             poser.ShortcutKeyDisplayString = Regles.Raccourci;
             menu.Items.Add(poser);
+            if (reglages.GardeAutoMinutes > 0)
+                menu.Items.Add(Item("Pas de garde automatique jusqu'à la prochaine garde",
+                    () => g.GardeAutoSuspendue = !g.GardeAutoSuspendue, g.GardeAutoSuspendue));
         }
         else
         {

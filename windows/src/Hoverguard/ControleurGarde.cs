@@ -54,6 +54,9 @@ internal sealed class ControleurGarde
     private readonly LimiteurAlertes limiteur = new();
     private bool enPose;
     private volatile bool sessionVerrouillee;
+    /// <summary>« Pas de garde automatique jusqu'à la prochaine garde » (vidéo, lecture…) : levé à la prochaine garde ou
+    /// au verrouillage de la session Windows. Pas retenu au relancement de l'app.</summary>
+    public bool GardeAutoSuspendue { get; set; }
     public Action SurChangement = () => { };
 
     public ControleurGarde(Reglages reglages, Action enregistrer)
@@ -105,7 +108,11 @@ internal sealed class ControleurGarde
         // l'ouverture de la session, retour de Matheo, 1.1.4).
         SystemEvents.SessionSwitch += (_, e) =>
         {
-            if (e.Reason == SessionSwitchReason.SessionLock) sessionVerrouillee = true;
+            if (e.Reason == SessionSwitchReason.SessionLock)
+            {
+                sessionVerrouillee = true;
+                interface_.BeginInvoke(() => GardeAutoSuspendue = false);
+            }
             else if (e.Reason == SessionSwitchReason.SessionUnlock)
             {
                 sessionVerrouillee = false;
@@ -148,6 +155,7 @@ internal sealed class ControleurGarde
             void Garder()
             {
                 Etat = EtatGarde.Garde;
+                GardeAutoSuspendue = false;
                 Filtre.Etat = Etat;
             }
             if (!await Voile.Poser(fenetresPosees: Garder))
@@ -354,7 +362,7 @@ internal sealed class ControleurGarde
         var b = Batterie.Lire();
         if (Etat != EtatGarde.Libre && !b.SurSecteur && b.Niveau is int n && n <= 20) Alerter(Alerte.BatterieFaible, $"Plus que {n} % de batterie.");
         // Sans mot de passe choisi, pas de garde automatique (sinon les réglages s'ouvriraient en boucle).
-        if (MotDePasseApp is not null && !sessionVerrouillee
+        if (MotDePasseApp is not null && !sessionVerrouillee && !GardeAutoSuspendue
             && ReglesGardeAuto.DoitPoser(Etat, reglages.GardeAutoMinutes, TotalActifs, Filtre.InactivitePhysique, reglages.GardeAutoSansAgent))
         {
             Journal.Info($"Garde posée automatiquement après {reglages.GardeAutoMinutes} min d'inactivité");

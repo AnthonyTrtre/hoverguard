@@ -95,6 +95,10 @@ final class Delegue: NSObject, NSApplicationDelegate, NSMenuDelegate, SPUUpdater
                 MainActor.assumeIsolated { self?.garde.rearmerTouchID() }
             }
         }
+        DistributedNotificationCenter.default().addObserver(forName: Notification.Name("com.apple.screenIsLocked"), object: nil,
+                                                            queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.garde.gardeAutoSuspendue = false }
+        }
         NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.sessionDidBecomeActiveNotification,
                                                           object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.garde.rearmerTouchID() }
@@ -145,6 +149,11 @@ final class Delegue: NSObject, NSApplicationDelegate, NSMenuDelegate, SPUUpdater
             return
         }
         menu.addItem(ItemAction("Poser la garde   ⌃⌘W") { g.verrouiller() })
+        if g.gardeAutoMinutes > 0 {
+            menu.addItem(ItemAction("Pas de garde automatique jusqu'à la prochaine garde", coche: g.gardeAutoSuspendue) {
+                g.gardeAutoSuspendue.toggle()
+            })
+        }
 
         // Ex-Veilleur : garder le Mac éveillé sans poser la garde.
         menu.addItem(.separator())

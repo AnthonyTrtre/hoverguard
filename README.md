@@ -34,6 +34,8 @@ sous-agents) sont au travail.
   « garder éveillé » sans voile est aussi dans le menu.
 - **Au retour** : un rapport (durée, agents terminés, tentatives d'accès, photo éventuelle de l'intrus).
 - **En option** : garde automatique après quelques minutes sans activité, notifications iMessage sur l'iPhone.
+- **Vidéo, lecture** : « Pas de garde automatique jusqu'à la prochaine garde » dans le menu, levé à la prochaine garde
+  ou au verrouillage de la session.
 
 ## Ce que Hoverguard n'est pas
 Hoverguard protège **la vue et le clavier**, c'est un outil de confidentialité. **Ce n'est pas un verrou de sécurité** :

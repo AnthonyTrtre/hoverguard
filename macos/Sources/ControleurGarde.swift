@@ -90,6 +90,10 @@ final class ControleurGarde {
     /// Poser la garde tout seule même sans agent au travail (comme un économiseur d'écran). Activé par défaut.
     var gardeAutoSansAgent: Bool { reglages.object(forKey: "gardeAutoSansAgent") as? Bool ?? true }
 
+    /// « Pas de garde automatique jusqu'à la prochaine garde » (vidéo, lecture…) : levé à la prochaine garde ou au
+    /// verrouillage de la session macOS. Pas retenu au relancement de l'app.
+    var gardeAutoSuspendue = false
+
     /// Poser la garde tout seul après N minutes sans toucher au Mac, si des agents travaillent (0 = jamais).
     var gardeAutoMinutes: Int {
         get { reglages.object(forKey: "gardeAutoMinutes") as? Int ?? 15 }
@@ -164,6 +168,7 @@ final class ControleurGarde {
                            "Sans elle, Hoverguard ne peut pas bloquer le clavier et la souris. Autorise-le dans Réglages Système › Confidentialité et sécurité › Accessibilité, puis réessaie.")
         }
         etat = .garde
+        gardeAutoSuspendue = false
         phraseDuJour = Textes.phrases.randomElement() ?? phraseDuJour
         eveil = AssertionEveil(ecranAllume: true, raison: "Hoverguard garde l'écran, les agents travaillent")
         voile.poser()
@@ -364,7 +369,7 @@ final class ControleurGarde {
         if etat != .libre { rafraichirVoile() }  // batterie à jour même si le relevé des agents tarde
         let b = Batterie.lire()
         if etat != .libre, !b.surSecteur, let n = b.niveau, n <= 20 { alerter(.batterieFaible, "Plus que \(n) % de batterie.") }
-        if etat == .libre, gardeAutoMinutes > 0, totalActifs > 0 || gardeAutoSansAgent, ReglesGarde.inactivite(materielle: Inactivite.secondes, depuisLevee: Date.now.timeIntervalSince(derniereLevee)) > Double(gardeAutoMinutes) * 60 {
+        if etat == .libre, !gardeAutoSuspendue, gardeAutoMinutes > 0, totalActifs > 0 || gardeAutoSansAgent, ReglesGarde.inactivite(materielle: Inactivite.secondes, depuisLevee: Date.now.timeIntervalSince(derniereLevee)) > Double(gardeAutoMinutes) * 60 {
             Journal.app.info("Garde posée automatiquement après \(self.gardeAutoMinutes) min d'inactivité")
             verrouiller()
         }
