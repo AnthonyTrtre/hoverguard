@@ -23,6 +23,9 @@ final class FenetreReglages {
         fenetre?.contentView = NSHostingView(rootView: VueReglages(garde: garde, onglet: onglet))
         NSApp.activate()
         fenetre?.makeKeyAndOrderFront(nil)
+        // Choisi depuis une autre app (Valance réaffiche notre menu et le presse par l'accessibilité) : macOS refuse
+        // alors l'activation et la fenêtre s'ouvrait derrière. Elle passe devant quoi qu'il arrive.
+        fenetre?.orderFrontRegardless()
     }
 
     enum Onglet: Hashable, CaseIterable, Identifiable {
