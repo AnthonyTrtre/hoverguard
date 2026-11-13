@@ -272,6 +272,15 @@ final class ControleurGarde {
         journal?.reveil()
         voile.approcher()
         armerTouchIDDiscret()
+        // Clavier Touch ID sans fil endormi (Magic Keyboard au bureau) : il ne se reconnecte qu'à la première touche et
+        // son capteur n'est prêt que quelques secondes après. La demande lancée avant ne l'entend pas : le 13/11, aucun
+        // doigt reçu pendant 13 min. On la renouvelle une fois le clavier revenu, puis une fois son capteur prêt.
+        for delai in [2.0, 10.0] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delai) { [weak self] in
+                guard let self, self.etat == .authentification else { return }
+                self.rearmerTouchID()
+            }
+        }
         surChangement()
     }
 
