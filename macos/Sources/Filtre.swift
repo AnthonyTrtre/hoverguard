@@ -16,6 +16,8 @@ final class Filtre {
     var surSaisie: (ActionSaisie) -> Void = { _ in }
     /// Le système a coupé le filtre et il n'a pas pu repartir (autorisation retirée…).
     var surPanne: () -> Void = {}
+    /// Dernier événement reçu de TeamViewer : la garde automatique ne doit pas tomber pendant une prise en main.
+    private(set) var derniereTeleassistance = Date.distantPast
 
     static var autorise: Bool { AXIsProcessTrusted() }
 
@@ -65,6 +67,7 @@ final class Filtre {
             if !actif { surPanne() }
             return true
         }
+        if entree.teleassistance { derniereTeleassistance = .now }
         switch Regles.decider(entree, etat: etat()) {
         case .laisser: return true
         case .bloquer: return false
@@ -93,12 +96,14 @@ private let rappel: CGEventTapCallBack = { _, type, evenement, donnees in
     case .leftMouseDown, .rightMouseDown, .otherMouseDown: .clic
     default: .autre
     }
-    let entree = Entree(pidSource: evenement.getIntegerValueField(.eventSourceUnixProcessID), genre: genre,
+    let pid = evenement.getIntegerValueField(.eventSourceUnixProcessID)
+    let entree = Entree(pidSource: pid, genre: genre,
                         estRaccourci: genre == .touche && Regles.estRaccourci(
                             caracteres: NSEvent(cgEvent: evenement)?.charactersIgnoringModifiers,
                             controle: f.contains(.maskControl), commande: f.contains(.maskCommand),
                             option: f.contains(.maskAlternate), majuscule: f.contains(.maskShift)),
-                        avecCommande: f.contains(.maskCommand))
+                        avecCommande: f.contains(.maskCommand),
+                        teleassistance: pid != 0 && MainActor.assumeIsolated { Telecommande.estTeleassistance(pid: pid) })
     let repetition = evenement.getIntegerValueField(.keyboardEventAutorepeat) != 0
     let saisie = genre == .touche ? ActionSaisie.depuis(
         codeTouche: evenement.getIntegerValueField(.keyboardEventKeycode),

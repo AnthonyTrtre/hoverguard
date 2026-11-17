@@ -378,7 +378,7 @@ final class ControleurGarde {
         if etat != .libre { rafraichirVoile() }  // batterie à jour même si le relevé des agents tarde
         let b = Batterie.lire()
         if etat != .libre, !b.surSecteur, let n = b.niveau, n <= 20 { alerter(.batterieFaible, "Plus que \(n) % de batterie.") }
-        if etat == .libre, !gardeAutoSuspendue, gardeAutoMinutes > 0, totalActifs > 0 || gardeAutoSansAgent, ReglesGarde.inactivite(materielle: Inactivite.secondes, depuisLevee: Date.now.timeIntervalSince(derniereLevee)) > Double(gardeAutoMinutes) * 60 {
+        if etat == .libre, !gardeAutoSuspendue, gardeAutoMinutes > 0, totalActifs > 0 || gardeAutoSansAgent, ReglesGarde.inactivite(materielle: Inactivite.secondes, depuisLevee: Date.now.timeIntervalSince(derniereLevee), depuisTeleassistance: Date.now.timeIntervalSince(filtre.derniereTeleassistance)) > Double(gardeAutoMinutes) * 60 {
             Journal.app.info("Garde posée automatiquement après \(self.gardeAutoMinutes) min d'inactivité")
             verrouiller()
         }

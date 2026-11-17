@@ -69,6 +69,25 @@ import Testing
         #expect(ReglesGarde.attenteApres(echecs: 50) == 120)
     }
 
+    @Test func teamViewerSubitLaGardeCommeLeClavier() {
+        let tv = { (g: Entree.Genre) in Entree(pidSource: 777, genre: g, teleassistance: true) }
+        #expect(Regles.decider(tv(.touche), etat: .garde) == .reveiller)
+        #expect(Regles.decider(tv(.clic), etat: .garde) == .reveiller)
+        #expect(Regles.decider(tv(.autre), etat: .garde) == .bloquer)
+        #expect(Regles.decider(tv(.touche), etat: .authentification) == .saisir)
+        #expect(Regles.decider(tv(.clic), etat: .authentification) == .bloquer)
+        #expect(Regles.decider(tv(.touche), etat: .libre) == .laisser)
+        // Un agent local garde la main sous la garde, et ne tape pas dans le mot de passe.
+        #expect(Regles.decider(claude(.touche), etat: .authentification) == .laisser)
+        #expect(ReglesGarde.inactivite(materielle: 3600, depuisLevee: 3600, depuisTeleassistance: 5) == 5)
+    }
+
+    @MainActor @Test func unProcessusQuelconqueNEstPasTeamViewer() {
+        #expect(!Telecommande.estTeleassistance(pid: Int64(getpid())))
+        #expect(!Telecommande.estTeleassistance(pid: 0))
+        #expect(!Telecommande.estTeleassistance(pid: 1))
+    }
+
     @Test func laLeveeParTouchIDRepousseLaGardeAuto() {
         #expect(ReglesGarde.inactivite(materielle: 3600, depuisLevee: 1) == 1)
         #expect(ReglesGarde.inactivite(materielle: 30, depuisLevee: .infinity) == 30)

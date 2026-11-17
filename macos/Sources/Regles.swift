@@ -20,8 +20,13 @@ struct Entree: Equatable, Sendable {
     var genre: Genre
     var estRaccourci = false
     var avecCommande = false
+    /// Injecté par une prise en main à distance vérifiée (TeamViewer) : la personne à distance subit la garde comme
+    /// au clavier, sinon elle ne pourrait pas taper le mot de passe sous le voile.
+    var teleassistance = false
 
     var estPhysique: Bool { pidSource == 0 }
+    /// Soumis à la garde : le vrai matériel et la prise en main à distance. Les agents passent.
+    var estFiltre: Bool { estPhysique || teleassistance }
 }
 
 enum Decision: Equatable, Sendable {
@@ -58,9 +63,9 @@ enum ActionSaisie: Equatable, Sendable {
 }
 
 enum Regles {
-    /// Cœur de la garde. Ce que fabriquent les agents passe toujours ; seul le matériel est filtré.
+    /// Cœur de la garde. Ce que fabriquent les agents passe toujours ; le matériel et TeamViewer sont filtrés.
     static func decider(_ e: Entree, etat: EtatGarde) -> Decision {
-        guard e.estPhysique else { return .laisser }
+        guard e.estFiltre else { return .laisser }
         switch etat {
         case .libre:
             return e.estRaccourci && e.genre == .touche ? .poser : .laisser
@@ -102,8 +107,10 @@ enum ReglesGarde {
 
     /// Inactivité pour la garde automatique : la levée de la garde compte comme une activité (Touch ID ne passe pas
     /// par le clavier ni la souris).
-    static func inactivite(materielle: TimeInterval, depuisLevee: TimeInterval) -> TimeInterval {
-        min(materielle, depuisLevee)
+    /// TeamViewer n'est pas vu par le compteur matériel de macOS : son dernier événement compte aussi.
+    static func inactivite(materielle: TimeInterval, depuisLevee: TimeInterval,
+                           depuisTeleassistance: TimeInterval = .infinity) -> TimeInterval {
+        min(materielle, depuisLevee, depuisTeleassistance)
     }
 }
 
